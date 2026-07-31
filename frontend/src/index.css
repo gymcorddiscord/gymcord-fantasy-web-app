@@ -1,0 +1,616 @@
+/* ============================================================
+   Gymcord Fantasy — global styles & theme
+   Dark-first design from the PRD palette, light mode supported.
+   ============================================================ */
+
+:root {
+    /* Dark theme (default) — based on the Gymcord Fantasy v2 design */
+    --bg:          #0A0E14;
+    --bg-elevated: #0F141C;
+    --surface:     #141925;
+    --surface-2:   #1C2231;
+    --border:      #232938;
+    --border-soft: #1A1F2C;
+    --text:        #FFFFFF;
+    --text-muted:  #8B95A7;
+    --text-dim:    #5A6478;
+    --accent:      #1ED9F0;
+    --accent-hover:#36E0F2;
+    --accent-fg:   #021A1F;
+    --success:     #34D399;
+    --warning:     #F59E0B;
+    --error:       #F87171;
+    --error-bg:    rgba(248, 113, 113, 0.12);
+    /* Brand gradient — used on the logo mark and a few hero accents */
+    --brand-grad:  linear-gradient(135deg, #34D399 0%, #1ED9F0 50%, #A855F7 100%);
+    --shadow:      0 4px 16px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 24px rgba(30, 217, 240, 0.18);
+    --radius:      8px;
+    --radius-lg:   20px;
+    --radius-pill: 999px;
+}
+
+[data-theme="light"] {
+    --bg:          #F7F9FC;
+    --bg-elevated: #FFFFFF;
+    --surface:     #FFFFFF;
+    --surface-2:   #EEF2F7;
+    --border:      #DCE3ED;
+    --border-soft: #E8EDF4;
+    --text:        #0B1220;
+    --text-muted:  #4A5568;
+    --text-dim:    #8893A6;
+    --accent:      #0894AB;
+    --accent-hover:#0AA8C0;
+    --accent-fg:   #FFFFFF;
+    --success:     #047857;
+    --warning:     #B45309;
+    --error:       #B91C1C;
+    --error-bg:    rgba(185, 28, 28, 0.08);
+    --shadow:      0 4px 16px rgba(0, 0, 0, 0.06);
+    --shadow-glow: 0 0 24px rgba(8, 148, 171, 0.15);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body, #root {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+                 Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+button {
+    font: inherit;
+    cursor: pointer;
+}
+
+input, select, textarea {
+    font: inherit;
+}
+
+/* ---------- Layout ---------- */
+
+.app-shell {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.app-header .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text);
+}
+
+.app-header .brand-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: var(--brand-grad);
+    position: relative;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) inset, var(--shadow);
+}
+.app-header .brand-mark::after {
+    content: "";
+    position: absolute;
+    inset: 6px 6px auto auto;
+    width: 18px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.85);
+    -webkit-mask: url("/favicon.svg") center / contain no-repeat;
+            mask: url("/favicon.svg") center / contain no-repeat;
+    /* The favicon already contains the swoosh; keep the mark clean here */
+    display: none;
+}
+
+.app-header nav {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.theme-toggle {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 12px;
+    font-size: 13px;
+}
+.theme-toggle:hover { color: var(--text); }
+
+/* ---------- Pages ---------- */
+
+.page {
+    flex: 1;
+    padding: 48px 32px;
+    max-width: 1100px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.page-narrow {
+    max-width: 420px;
+    margin: 56px auto;
+    padding: 0 24px;
+}
+
+h1.page-title {
+    font-size: 28px;
+    margin: 0 0 8px;
+}
+.page-subtitle {
+    color: var(--text-muted);
+    margin: 0 0 32px;
+}
+
+/* ---------- Card / Form ---------- */
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    box-shadow: var(--shadow);
+}
+
+.form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+label {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    width: 100%;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.18);
+}
+
+.field-error {
+    color: var(--error);
+    font-size: 12px;
+    min-height: 16px;
+}
+
+.form-error {
+    background: var(--error-bg);
+    color: var(--error);
+    border: 1px solid var(--error);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    font-weight: 600;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-color: var(--accent);
+    width: 100%;
+}
+.btn-primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text);
+    border-color: var(--border);
+}
+.btn-ghost:hover:not(:disabled) {
+    background: var(--surface-2);
+}
+
+.btn-link {
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    padding: 0;
+    font-weight: 500;
+}
+.btn-link:hover { text-decoration: underline; }
+
+/* ---------- Feedback button ---------- */
+
+.feedback-fab {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 100;
+    padding: 12px 20px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-weight: 600;
+    box-shadow: var(--shadow);
+}
+.feedback-fab:hover {
+    background: var(--surface-2);
+}
+
+.feedback-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.feedback-modal {
+    width: 100%;
+    max-width: 420px;
+}
+
+.feedback-modal h3 {
+    margin: 0 0 8px;
+}
+
+.feedback-page-note {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin: 0 0 16px;
+}
+
+.feedback-modal textarea {
+    width: 100%;
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font: inherit;
+    resize: vertical;
+    margin-bottom: 12px;
+}
+.feedback-modal textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.18);
+}
+
+.feedback-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* ---------- Auth footer ---------- */
+
+.auth-footer {
+    text-align: center;
+    color: var(--text-muted);
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+/* ---------- Landing ---------- */
+
+.hero {
+    text-align: center;
+    padding: 80px 0 40px;
+}
+.hero h1 {
+    font-size: 48px;
+    margin: 0 0 16px;
+    letter-spacing: -0.02em;
+}
+.hero .accent { color: var(--accent); }
+.hero p {
+    color: var(--text-muted);
+    font-size: 18px;
+    max-width: 580px;
+    margin: 0 auto 32px;
+}
+.hero .cta-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin-top: 56px;
+}
+
+.feature {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+}
+.feature h3 {
+    margin: 0 0 6px;
+    font-size: 16px;
+}
+.feature p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* ---------- Pill nav (for future logged-in app) ---------- */
+
+.pill-nav {
+    display: inline-flex;
+    gap: 8px;
+    padding: 4px;
+}
+.pill-nav a,
+.pill-nav button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 14px;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.pill-nav a:hover,
+.pill-nav button:hover {
+    color: var(--text);
+    background: var(--surface-2);
+    text-decoration: none;
+}
+.pill-nav a.active,
+.pill-nav button.active {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-color: var(--accent);
+    font-weight: 600;
+}
+
+/* ---------- Status badge (Week 3 CURRENT etc.) ---------- */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.badge-accent {
+    background: var(--accent);
+    color: var(--accent-fg);
+}
+
+/* ---------- Loading ---------- */
+
+.full-page-loader {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+}
+
+/* ---------- Header links (logged-in nav) ---------- */
+
+.header-link {
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-radius: var(--radius);
+    text-decoration: none;
+    transition: color 0.15s, background 0.15s;
+}
+.header-link:hover {
+    color: var(--text);
+    background: var(--surface-2);
+    text-decoration: none;
+}
+.header-link--active {
+    color: var(--text);
+    background: var(--surface-2);
+}
+
+/* ---------- Gymnasts page ---------- */
+
+.filter-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 200px 180px;
+    gap: 12px;
+    margin: 0 0 16px;
+}
+@media (max-width: 720px) {
+    .filter-bar {
+        grid-template-columns: 1fr;
+    }
+}
+
+.filter-bar input[type="text"],
+.filter-bar select {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    width: 100%;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.filter-bar select { cursor: pointer; }
+.filter-bar input:focus,
+.filter-bar select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.18);
+}
+
+.gymnast-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.gymnast-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: border-color 0.15s, transform 0.15s;
+}
+.gymnast-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+}
+
+.gymnast-card__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.team-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+}
+
+.gymnast-card__team {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.2;
+}
+.gymnast-card__team-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.gymnast-card__team-conf {
+    font-size: 11px;
+    color: var(--text-dim);
+}
+
+.class-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.gymnast-card__name {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.gymnast-card__events {
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+}
+
+.gymnast-card__avg {
+    margin-top: auto;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-soft);
+}
+.gymnast-card__avg-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.gymnast-card__avg-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+}

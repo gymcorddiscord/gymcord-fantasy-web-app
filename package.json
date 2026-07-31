@@ -1,0 +1,11 @@
+{
+  "name": "gymcord-fantasy-web-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fantasy gymnastics web app — React + Vite frontend, Supabase (Postgres + Auth) backend, deployed to GitHub Pages.",
+  "scripts": {
+    "install-all": "npm install --prefix frontend",
+    "dev": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend"
+  }
+}

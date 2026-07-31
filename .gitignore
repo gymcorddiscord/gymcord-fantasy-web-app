@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+build/
+.next/
+.swa/
+
+# Local environment / secrets — NEVER commit these
+.env
+.env.local
+.env.*.local
+api/local.settings.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS files
+.DS_Store
+.vscode/
+.idea/
+Thumbs.db
+
+# Azure Functions
+bin/
+obj/
+.python_packages/
+__pycache__/
+
+# TypeScript build info
+*.tsbuildinfo
