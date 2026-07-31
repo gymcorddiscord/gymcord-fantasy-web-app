@@ -21,6 +21,16 @@ function RequireAuth({ children }: { children: ReactElement }) {
     return children;
 }
 
+// After Discord OAuth, Supabase redirects to the bare site root (see
+// AuthContext.signInWithDiscord) rather than a specific route. Once that
+// lands here and a session is picked up, send signed-in users on to /home.
+function RedirectIfAuthed({ children }: { children: ReactElement }) {
+    const { user, loading } = useAuth();
+    if (loading) return <div className="full-page-loader">Loading…</div>;
+    if (user) return <Navigate to="/home" replace />;
+    return children;
+}
+
 function Shell() {
     const { loading } = useAuth();
     return (
@@ -30,9 +40,30 @@ function Shell() {
                 <div className="full-page-loader">Loading…</div>
             ) : (
                 <Routes>
-                    <Route path="/" element={<Landing />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
+                    <Route
+                        path="/"
+                        element={
+                            <RedirectIfAuthed>
+                                <Landing />
+                            </RedirectIfAuthed>
+                        }
+                    />
+                    <Route
+                        path="/login"
+                        element={
+                            <RedirectIfAuthed>
+                                <Login />
+                            </RedirectIfAuthed>
+                        }
+                    />
+                    <Route
+                        path="/register"
+                        element={
+                            <RedirectIfAuthed>
+                                <Register />
+                            </RedirectIfAuthed>
+                        }
+                    />
                     <Route
                         path="/home"
                         element={

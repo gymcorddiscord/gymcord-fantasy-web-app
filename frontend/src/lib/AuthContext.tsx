@@ -59,9 +59,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, [refresh]);
 
     const signInWithDiscord = useCallback(async () => {
+        // Redirect back to the bare site root, not a specific route: Supabase
+        // appends the OAuth result as its own URL hash fragment, which would
+        // collide with HashRouter's use of "#" for client-side routing if we
+        // baked a route (like "#/home") into this URL. Once the session is
+        // picked up, the app itself routes signed-in users to /home (see
+        // RedirectIfAuthed in App.tsx).
         await supabase.auth.signInWithOAuth({
             provider: 'discord',
-            options: { redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}home` }
+            options: { redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}` }
         });
     }, []);
 
