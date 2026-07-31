@@ -2,6 +2,7 @@ import { HashRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/AuthContext';
 import { AppHeader } from './components/AppHeader';
 import { FeedbackButton } from './components/FeedbackButton';
+import { Footer } from './components/Footer';
 import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
@@ -99,6 +100,7 @@ function Shell() {
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             )}
+            <Footer />
             <FeedbackButton />
         </div>
     );

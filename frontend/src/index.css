@@ -168,6 +168,15 @@ input, select, textarea {
     margin: 0 auto;
 }
 
+/* ---------- Footer ---------- */
+
+.app-footer {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 12px;
+    padding: 0 24px 24px;
+}
+
 .page-narrow {
     max-width: 420px;
     margin: 56px auto;
