@@ -17,48 +17,48 @@ export function AppHeader() {
 
     return (
         <header className="app-header">
-            <Link to="/" className="brand">
-                <span className="brand-mark" aria-hidden="true" />
-                <span>Gymcord Fantasy</span>
-            </Link>
-            <nav>
-                <button
-                    className="theme-toggle"
-                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                    aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                >
-                    {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-                </button>
-                {user ? (
-                    <>
-                        <NavLink
-                            to="/home"
-                            className={({ isActive }) => `header-link${isActive ? ' header-link--active' : ''}`}
-                        >
-                            Home
-                        </NavLink>
-                        <NavLink
-                            to="/gymnasts"
-                            className={({ isActive }) => `header-link${isActive ? ' header-link--active' : ''}`}
-                        >
-                            Gymnasts
-                        </NavLink>
-                        <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-                            {user.displayName}
-                        </span>
-                        <button className="btn btn-ghost" onClick={onLogout}>
-                            Log out
-                        </button>
-                    </>
-                ) : (
-                    <>
-                        <Link to="/login" className="btn btn-ghost">Log in</Link>
-                        <Link to="/register" className="btn btn-primary" style={{ width: 'auto' }}>
-                            Sign up
-                        </Link>
-                    </>
-                )}
-            </nav>
+            <div className="hero-inner">
+                <Link to="/" className="brand">
+                    <h1>Gymcord Fantasy</h1>
+                </Link>
+                <nav>
+                    {user ? (
+                        <>
+                            <NavLink
+                                to="/home"
+                                className={({ isActive }) => `header-link${isActive ? ' header-link--active' : ''}`}
+                            >
+                                Home
+                            </NavLink>
+                            <NavLink
+                                to="/gymnasts"
+                                className={({ isActive }) => `header-link${isActive ? ' header-link--active' : ''}`}
+                            >
+                                Gymnasts
+                            </NavLink>
+                            <span className="header-username">{user.displayName}</span>
+                            <button className="btn btn-ghost" onClick={onLogout}>
+                                Log out
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <Link to="/login" className="btn btn-ghost">Log in</Link>
+                            <Link to="/register" className="btn btn-primary" style={{ width: 'auto' }}>
+                                Sign up
+                            </Link>
+                        </>
+                    )}
+                    <button
+                        type="button"
+                        className="theme-toggle"
+                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                    >
+                        {theme === 'dark' ? '☀️' : '🌙'}
+                    </button>
+                </nav>
+            </div>
         </header>
     );
 }
