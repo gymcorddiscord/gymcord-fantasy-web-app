@@ -7,6 +7,9 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Home } from './pages/Home';
 import { Gymnasts } from './pages/Gymnasts';
+import { CreateLeague } from './pages/CreateLeague';
+import { JoinLeague } from './pages/JoinLeague';
+import { takePendingJoinCode } from './lib/pendingJoin';
 import { ReactElement } from 'react';
 
 // HashRouter (not BrowserRouter) because this deploys as a static site on
@@ -27,7 +30,11 @@ function RequireAuth({ children }: { children: ReactElement }) {
 function RedirectIfAuthed({ children }: { children: ReactElement }) {
     const { user, loading } = useAuth();
     if (loading) return <div className="full-page-loader">Loading…</div>;
-    if (user) return <Navigate to="/home" replace />;
+    if (user) {
+        const pendingCode = takePendingJoinCode();
+        if (pendingCode) return <Navigate to={`/join/${pendingCode}`} replace />;
+        return <Navigate to="/home" replace />;
+    }
     return children;
 }
 
@@ -80,6 +87,15 @@ function Shell() {
                             </RequireAuth>
                         }
                     />
+                    <Route
+                        path="/leagues/new"
+                        element={
+                            <RequireAuth>
+                                <CreateLeague />
+                            </RequireAuth>
+                        }
+                    />
+                    <Route path="/join/:code" element={<JoinLeague />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             )}

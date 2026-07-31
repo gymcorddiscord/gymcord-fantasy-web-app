@@ -37,6 +37,23 @@ export interface Gymnast {
     team: NcaaTeam;
 }
 
+export interface League {
+    id: number;
+    name: string;
+    joinCode: string;
+    commissionerId: string;
+    rosterSize: number;
+    upCount: number;
+    countScore: number;
+}
+
+export interface LeagueMembership {
+    id: number;
+    leagueId: number;
+    teamName: string;
+    league: League;
+}
+
 export type EventFilter = 'vault' | 'bars' | 'beam' | 'floor' | 'aa';
 
 const EVENT_COLUMN: Record<EventFilter, string> = {
@@ -56,6 +73,30 @@ function toNcaaTeam(row: any): NcaaTeam {
         conference: row.conference,
         color: row.primary_color
     };
+}
+
+function toLeague(row: any): League {
+    return {
+        id: row.id,
+        name: row.name,
+        joinCode: row.join_code,
+        commissionerId: row.commissioner_id,
+        rosterSize: row.roster_size,
+        upCount: row.up_count,
+        countScore: row.count_score
+    };
+}
+
+// No 0/O/1/I — avoids ambiguous characters in a code someone has to read
+// off a screen or type out.
+const JOIN_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function randomJoinCode(): string {
+    let code = '';
+    for (let i = 0; i < 8; i++) {
+        code += JOIN_CODE_ALPHABET[Math.floor(Math.random() * JOIN_CODE_ALPHABET.length)];
+    }
+    return code;
 }
 
 export const api = {
@@ -130,5 +171,101 @@ export const api = {
             .insert({ user_id: user?.id ?? null, page_path: pagePath, message });
         if (error) throw error;
         return { ok: true };
+    },
+
+    createLeague: async (params: {
+        name: string;
+        teamName: string;
+        rosterSize: number;
+        upCount: number;
+        countScore: number;
+    }): Promise<League> => {
+        const {
+            data: { user }
+        } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not signed in.');
+
+        // Retry a couple of times in the vanishingly unlikely case the
+        // random join code collides with an existing one.
+        let row: any = null;
+        let lastError: unknown = null;
+        for (let attempt = 0; attempt < 3 && !row; attempt++) {
+            const { data, error } = await supabase
+                .from('leagues')
+                .insert({
+                    name: params.name,
+                    join_code: randomJoinCode(),
+                    commissioner_id: user.id,
+                    roster_size: params.rosterSize,
+                    up_count: params.upCount,
+                    count_score: params.countScore
+                })
+                .select()
+                .single();
+            if (!error) {
+                row = data;
+                break;
+            }
+            lastError = error;
+            if (error.code !== '23505') break; // only retry on unique_violation
+        }
+        if (!row) throw lastError;
+
+        const { error: memberError } = await supabase
+            .from('league_members')
+            .insert({ league_id: row.id, user_id: user.id, team_name: params.teamName });
+        if (memberError) throw memberError;
+
+        return toLeague(row);
+    },
+
+    getLeagueByCode: async (code: string): Promise<League | null> => {
+        const { data, error } = await supabase
+            .from('leagues')
+            .select('*')
+            .eq('join_code', code.trim().toUpperCase())
+            .maybeSingle();
+        if (error) throw error;
+        return data ? toLeague(data) : null;
+    },
+
+    leagueMemberCount: async (leagueId: number): Promise<number> => {
+        const { count, error } = await supabase
+            .from('league_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('league_id', leagueId);
+        if (error) throw error;
+        return count ?? 0;
+    },
+
+    joinLeague: async (leagueId: number, teamName: string): Promise<void> => {
+        const {
+            data: { user }
+        } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not signed in.');
+        const { error } = await supabase
+            .from('league_members')
+            .insert({ league_id: leagueId, user_id: user.id, team_name: teamName });
+        if (error) throw error;
+    },
+
+    myLeagues: async (): Promise<LeagueMembership[]> => {
+        const {
+            data: { user }
+        } = await supabase.auth.getUser();
+        if (!user) return [];
+
+        const { data, error } = await supabase
+            .from('league_members')
+            .select('id, league_id, team_name, leagues (*)')
+            .eq('user_id', user.id);
+        if (error) throw error;
+
+        return (data || []).map((row: any) => ({
+            id: row.id,
+            leagueId: row.league_id,
+            teamName: row.team_name,
+            league: toLeague(row.leagues)
+        }));
     }
 };

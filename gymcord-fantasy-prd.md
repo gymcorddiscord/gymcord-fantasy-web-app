@@ -3358,6 +3358,8 @@ Tutorial & Help System:
 
 12.3 League Creation & Setup Flow
 
+**Implementation note (current build):** the full multi-step wizard below (Basic Info → Scoring Config → Roster/Pool Settings → Trading Rules → Review → Confirmation) is the target design, not what's built yet. What actually exists today is a single-page "Create a League" form (name, team name, roster/UP/COUNT with presets) and joining via a **shareable invite link** (`/join/:code`) rather than a manually-typed code — a commissioner shares the link directly (e.g. in Discord) instead of a code someone types in. Roster assignment method, gymnast pool restrictions, and trade system selection aren't built yet; every league currently behaves as "no trades" since trading isn't implemented at all.
+
 **Fixed system-wide rules (not configurable by commissioners):**
 - Season start: January 2 each year
 - Lineup lock: every Friday at 9:00 AM ET

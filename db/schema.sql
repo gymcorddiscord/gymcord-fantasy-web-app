@@ -129,7 +129,64 @@ create policy "Admins can update feedback status"
         )
     );
 
+-- ---------- Leagues ----------
+-- A league is created by a commissioner with a roster/scoring format
+-- (see PRD 3.1 "Up and Count"). join_code is the short token used in the
+-- shareable invite link (/join/:code) — no separate numeric league id is
+-- ever exposed to players.
+create table if not exists public.leagues (
+    id              bigint generated always as identity primary key,
+    name            text not null,
+    join_code       text not null unique,
+    commissioner_id uuid not null references auth.users(id),
+    roster_size     integer not null default 20,
+    up_count        integer not null default 10,
+    count_score     integer not null default 5,
+    created_at      timestamptz not null default now(),
+    constraint roster_size_bounds check (roster_size between 5 and 50),
+    constraint up_count_bounds check (up_count between 1 and roster_size),
+    constraint count_score_bounds check (count_score between 1 and up_count)
+);
+
+create index if not exists idx_leagues_join_code on public.leagues(join_code);
+
+alter table public.leagues enable row level security;
+
+create policy "Leagues are publicly readable"
+    on public.leagues for select
+    using (true);
+
+create policy "Authenticated users can create a league as themselves"
+    on public.leagues for insert
+    with check (auth.uid() = commissioner_id);
+
+-- ---------- League Members ----------
+-- One row per team in a league. The commissioner gets a row here too,
+-- like any other player, once they name their team.
+create table if not exists public.league_members (
+    id        bigint generated always as identity primary key,
+    league_id bigint not null references public.leagues(id) on delete cascade,
+    user_id   uuid not null references auth.users(id) on delete cascade,
+    team_name text not null,
+    joined_at timestamptz not null default now(),
+    unique (league_id, user_id),
+    unique (league_id, team_name)
+);
+
+create index if not exists idx_league_members_league_id on public.league_members(league_id);
+create index if not exists idx_league_members_user_id on public.league_members(user_id);
+
+alter table public.league_members enable row level security;
+
+create policy "League members are publicly readable"
+    on public.league_members for select
+    using (true);
+
+create policy "Users can join a league as themselves"
+    on public.league_members for insert
+    with check (auth.uid() = user_id);
+
 -- =============================================================
--- Future tables (Leagues, FantasyTeams, Rosters, Scores, Trades, etc.)
--- will be added in later migrations.
+-- Future tables (Rosters, Scores, Trades, etc.) will be added in
+-- later migrations.
 -- =============================================================

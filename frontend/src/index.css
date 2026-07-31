@@ -208,7 +208,8 @@ label {
 
 input[type="text"],
 input[type="email"],
-input[type="password"] {
+input[type="password"],
+input[type="number"] {
     background: var(--surface-2);
     color: var(--text);
     border: 1px solid var(--border);
@@ -216,6 +217,53 @@ input[type="password"] {
     padding: 10px 12px;
     width: 100%;
     transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.row3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+.preset-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.preset-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-weight: 600;
+    font-size: 13px;
+}
+.preset-btn span {
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+.preset-btn--active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+}
+
+.league-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.league-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 24px;
 }
 
 input:focus {
