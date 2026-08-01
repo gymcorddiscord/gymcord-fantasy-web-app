@@ -234,6 +234,100 @@ input[type="number"] {
     gap: 12px;
 }
 
+.section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 24px 0 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+.section-title:first-child { margin-top: 0; }
+
+.hint {
+    display: block;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 4px;
+}
+
+.pill-toggle {
+    display: inline-flex;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 3px;
+    gap: 2px;
+}
+.pill-toggle button {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    padding: 7px 16px;
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    font-weight: 600;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.pill-toggle button.active {
+    background: var(--accent);
+    color: var(--accent-fg);
+}
+.pill-toggle button.pill-toggle--no.active {
+    background: var(--warning);
+    color: #2A1400;
+}
+
+.subgroup {
+    margin-top: 14px;
+    padding: 14px 14px 2px;
+    border-left: 2px solid var(--accent);
+    background: rgba(0, 217, 255, 0.06);
+    border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.quick-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.quick-pill {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    font-size: 12.5px;
+    font-weight: 600;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.quick-pill:hover { border-color: var(--accent); }
+.quick-pill.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-fg);
+}
+
+textarea {
+    width: 100%;
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font: inherit;
+    resize: vertical;
+    min-height: 70px;
+}
+textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.18);
+}
+
 .preset-row {
     display: flex;
     gap: 8px;
@@ -562,41 +656,8 @@ input:focus {
     box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.18);
 }
 
-.gymnast-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 16px;
-}
-
-.gymnast-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    transition: border-color 0.15s, transform 0.15s;
-}
-.gymnast-card:hover {
-    border-color: var(--accent);
-    transform: translateY(-1px);
-}
-
-.gymnast-card__head {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.team-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
-}
-
+/* Still used by the modal header, which reuses this team-info block and
+   the class-year pill from the old card layout. */
 .gymnast-card__team {
     flex: 1;
     min-width: 0;
@@ -627,35 +688,249 @@ input:focus {
     letter-spacing: 0.04em;
 }
 
-.gymnast-card__name {
-    font-size: 17px;
-    font-weight: 600;
-    color: var(--text);
+/* ---------- Gymnast table ---------- */
+
+.table-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
 }
 
-.gymnast-card__events {
-    font-size: 12px;
-    color: var(--text-muted);
-    letter-spacing: 0.04em;
+.gymnast-table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 760px;
+    font-size: 13px;
 }
-
-.gymnast-card__avg {
-    margin-top: auto;
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    padding-top: 8px;
-    border-top: 1px solid var(--border-soft);
+.gymnast-table th,
+.gymnast-table td {
+    padding: 8px 12px;
+    text-align: right;
+    border-bottom: 1px solid var(--border-soft);
+    white-space: nowrap;
 }
-.gymnast-card__avg-label {
+.gymnast-table thead th {
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
     font-size: 11px;
-    color: var(--text-dim);
+    color: var(--text-muted);
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
 }
-.gymnast-card__avg-value {
+.gymnast-table th.th-group {
+    text-align: center;
+}
+
+.gymnast-table th.th-sticky,
+.gymnast-table td.td-sticky {
+    position: sticky;
+    text-align: left;
+    background: var(--surface);
+    z-index: 1;
+}
+.gymnast-table thead th.th-sticky {
+    background: var(--surface-2);
+    z-index: 2;
+}
+.th-sticky--name, .td-sticky--name { left: 0; min-width: 160px; }
+.th-sticky--team, .td-sticky--team { left: 160px; min-width: 140px; box-shadow: 2px 0 0 var(--border); }
+
+.gymnast-table tbody tr {
+    cursor: pointer;
+    transition: background 0.1s ease;
+}
+.gymnast-table tbody tr:hover,
+.gymnast-table tbody tr:hover td.td-sticky {
+    background: var(--surface-2);
+}
+.gymnast-table tbody tr:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}
+.gymnast-table td {
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+.gymnast-table td.td-name { font-weight: 600; }
+.gymnast-table td.td-muted { color: var(--text-dim); }
+
+/* ---------- Gymnast detail modal ---------- */
+
+.gymnast-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.gymnast-modal {
+    width: 100%;
+    max-width: 440px;
+    position: relative;
+}
+
+.gymnast-modal__close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-muted);
     font-size: 18px;
+    line-height: 1;
+}
+.gymnast-modal__close:hover {
+    color: var(--text);
+    border-color: var(--accent);
+}
+
+.gymnast-modal__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-right: 32px;
+}
+
+.gymnast-modal__name-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 12px 0 20px;
+}
+.gymnast-modal__name {
+    font-size: 22px;
+    margin: 0;
+}
+
+.gymnast-modal__season {
+    text-align: center;
+    padding: 16px;
+    margin-bottom: 20px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius);
+}
+.gymnast-modal__season-value {
+    font-size: 34px;
     font-weight: 700;
     color: var(--accent);
     font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+.gymnast-modal__season-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 4px;
+}
+
+.gymnast-modal__events {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.event-bar-row {
+    display: grid;
+    grid-template-columns: 52px 1fr 74px;
+    align-items: center;
+    gap: 10px;
+}
+.event-bar-row__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.event-bar-row__best {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.event-bar-row__track {
+    height: 32px;
+    border-radius: var(--radius);
+    background: var(--surface-2);
+    border: 1px solid var(--border-soft);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
+.event-bar-row__no-data {
+    width: 100%;
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-dim);
+}
+.event-bar-row__value {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+.event-bar-row__trend {
+    font-size: 12px;
+    font-weight: 700;
+}
+.event-bar-row__trend--up { color: var(--success); }
+.event-bar-row__trend--down { color: var(--error); }
+.event-bar-row__trend--flat { color: var(--text-dim); }
+
+.sparkline {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+.sparkline__area {
+    fill: var(--accent);
+    opacity: 0.12;
+}
+.sparkline__line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.sparkline__dot {
+    fill: var(--accent);
+}
+
+.gymnast-modal__note {
+    margin: 16px 0 0;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: center;
+    font-style: italic;
+}
+
+.gymnast-modal__aa-note {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-soft);
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
 }

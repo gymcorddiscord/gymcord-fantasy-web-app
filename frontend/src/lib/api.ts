@@ -33,6 +33,12 @@ export interface Gymnast {
         floor: boolean;
         allAround: boolean;
     };
+    eventAverages: {
+        vault: number | null;
+        bars: number | null;
+        beam: number | null;
+        floor: number | null;
+    };
     seasonAverage: number | null;
     team: NcaaTeam;
 }
@@ -45,6 +51,13 @@ export interface League {
     rosterSize: number;
     upCount: number;
     countScore: number;
+    injuryTradesAllowed: boolean;
+    injuryTradeTiming: 'as_it_happens' | 'draft';
+    lateRosterAdds: boolean;
+    manualInjuryTrades: boolean;
+    seasonEndingOnly: boolean;
+    regularSeasonTrades: boolean;
+    otherTradeRules: string | null;
 }
 
 export interface LeagueMembership {
@@ -83,7 +96,14 @@ function toLeague(row: any): League {
         commissionerId: row.commissioner_id,
         rosterSize: row.roster_size,
         upCount: row.up_count,
-        countScore: row.count_score
+        countScore: row.count_score,
+        injuryTradesAllowed: row.injury_trades_allowed,
+        injuryTradeTiming: row.injury_trade_timing,
+        lateRosterAdds: row.late_roster_adds,
+        manualInjuryTrades: row.manual_injury_trades,
+        seasonEndingOnly: row.season_ending_only,
+        regularSeasonTrades: row.regular_season_trades,
+        otherTradeRules: row.other_trade_rules
     };
 }
 
@@ -121,7 +141,7 @@ export const api = {
                 `
                 id, first_name, last_name, class_year,
                 competes_vault, competes_bars, competes_beam, competes_floor, is_all_around,
-                season_average,
+                vault_avg, bars_avg, beam_avg, floor_avg, season_average,
                 ncaa_teams!inner ( id, slug, name, short_name, conference, primary_color )
                 `,
                 { count: 'exact' }
@@ -155,11 +175,77 @@ export const api = {
                 floor: g.competes_floor,
                 allAround: g.is_all_around
             },
+            eventAverages: {
+                vault: g.vault_avg,
+                bars: g.bars_avg,
+                beam: g.beam_avg,
+                floor: g.floor_avg
+            },
             seasonAverage: g.season_average,
             team: toNcaaTeam(g.ncaa_teams)
         }));
 
         return { count: count ?? gymnasts.length, gymnasts };
+    },
+
+    weeklyScores: async (
+        gymnastId: number,
+        seasonYear = 2026
+    ): Promise<Record<'vault' | 'bars' | 'beam' | 'floor', { week: number; score: number }[]>> => {
+        const { data, error } = await supabase
+            .from('scores')
+            .select('event, week_number, score')
+            .eq('gymnast_id', gymnastId)
+            .eq('season_year', seasonYear)
+            .order('week_number');
+        if (error) throw error;
+
+        const byEvent: Record<'vault' | 'bars' | 'beam' | 'floor', { week: number; score: number }[]> = {
+            vault: [], bars: [], beam: [], floor: []
+        };
+        for (const row of data || []) {
+            byEvent[row.event as 'vault' | 'bars' | 'beam' | 'floor']?.push({ week: row.week_number, score: row.score });
+        }
+        return byEvent;
+    },
+
+    // Most recent (highest week_number) score per event for a batch of
+    // gymnasts in one query, rather than one weeklyScores() call per row —
+    // this is what the Gymnasts table's "Last" columns are built from.
+    lastScores: async (
+        gymnastIds: number[],
+        seasonYear = 2026
+    ): Promise<Record<number, Record<'vault' | 'bars' | 'beam' | 'floor', number | null>>> => {
+        if (gymnastIds.length === 0) return {};
+
+        const { data, error } = await supabase
+            .from('scores')
+            .select('gymnast_id, event, week_number, score')
+            .eq('season_year', seasonYear)
+            .in('gymnast_id', gymnastIds);
+        if (error) throw error;
+
+        const latestWeek: Record<number, Partial<Record<string, number>>> = {};
+        const latestScore: Record<number, Partial<Record<string, number>>> = {};
+        for (const row of data || []) {
+            const seenWeek = latestWeek[row.gymnast_id]?.[row.event];
+            if (seenWeek === undefined || row.week_number > seenWeek) {
+                (latestWeek[row.gymnast_id] ??= {})[row.event] = row.week_number;
+                (latestScore[row.gymnast_id] ??= {})[row.event] = row.score;
+            }
+        }
+
+        const result: Record<number, Record<'vault' | 'bars' | 'beam' | 'floor', number | null>> = {};
+        for (const id of gymnastIds) {
+            const scores = latestScore[id] || {};
+            result[id] = {
+                vault: scores.vault ?? null,
+                bars: scores.bars ?? null,
+                beam: scores.beam ?? null,
+                floor: scores.floor ?? null
+            };
+        }
+        return result;
     },
 
     submitFeedback: async (pagePath: string, message: string): Promise<{ ok: true }> => {
@@ -179,6 +265,13 @@ export const api = {
         rosterSize: number;
         upCount: number;
         countScore: number;
+        injuryTradesAllowed: boolean;
+        injuryTradeTiming: 'as_it_happens' | 'draft';
+        lateRosterAdds: boolean;
+        manualInjuryTrades: boolean;
+        seasonEndingOnly: boolean;
+        regularSeasonTrades: boolean;
+        otherTradeRules: string;
     }): Promise<League> => {
         const {
             data: { user }
@@ -198,7 +291,14 @@ export const api = {
                     commissioner_id: user.id,
                     roster_size: params.rosterSize,
                     up_count: params.upCount,
-                    count_score: params.countScore
+                    count_score: params.countScore,
+                    injury_trades_allowed: params.injuryTradesAllowed,
+                    injury_trade_timing: params.injuryTradeTiming,
+                    late_roster_adds: params.lateRosterAdds,
+                    manual_injury_trades: params.manualInjuryTrades,
+                    season_ending_only: params.seasonEndingOnly,
+                    regular_season_trades: params.regularSeasonTrades,
+                    other_trade_rules: params.otherTradeRules.trim() || null
                 })
                 .select()
                 .single();

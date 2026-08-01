@@ -64,20 +64,34 @@ create policy "NCAA teams are publicly readable"
     using (true);
 
 -- ---------- Gymnasts ----------
--- The pool of athletes users can draft. Event flags tell the UI which
--- events the gymnast competes on so we can filter / build lineups later.
+-- The pool of athletes users can draft. Event flags + per-event averages
+-- tell the UI which events the gymnast competes on and how they've scored,
+-- so players can make roster decisions per apparatus (matching how scoring
+-- actually works — see PRD 10.1). Populated from a season roster CSV
+-- (team/name/class) merged with a season's actual weekly scores by sheet
+-- (VT/UB/BB/FX); gymnasts with no prior-season data (freshmen, transfers)
+-- have every average as null until real scores come in.
 create table if not exists public.gymnasts (
     id             bigint generated always as identity primary key,
     ncaa_team_id   bigint not null references public.ncaa_teams(id),
     first_name     text not null,
     last_name      text not null,
-    class_year     text,  -- 'FR','SO','JR','SR','GR'
+    class_year     text,  -- 'FR','SO','JR','SR','5TH','R-SO','R-JR','R-SR', etc.
     competes_vault boolean not null default false,
     competes_bars  boolean not null default false,
     competes_beam  boolean not null default false,
     competes_floor boolean not null default false,
     is_all_around  boolean not null default false,
-    season_average numeric(5,3),  -- e.g. 9.875 (all-around average)
+    vault_avg      numeric(5,3),  -- season average on this event, null if they don't compete it / no data yet
+    bars_avg       numeric(5,3),
+    beam_avg       numeric(5,3),
+    floor_avg      numeric(5,3),
+    season_average numeric(5,3),  -- mean of whichever per-event averages exist (not a true all-around score)
+    vault_nqs      numeric(5,3),  -- official NCAA National Qualifying Score, null if not yet calculable / no catalog match
+    bars_nqs       numeric(5,3),
+    beam_nqs       numeric(5,3),
+    floor_nqs      numeric(5,3),
+    aa_nqs         numeric(5,3),  -- only calculable for true all-around competitors
     active         boolean not null default true,
     created_at     timestamptz not null default now()
 );
@@ -142,10 +156,19 @@ create table if not exists public.leagues (
     roster_size     integer not null default 20,
     up_count        integer not null default 10,
     count_score     integer not null default 5,
+    -- Trade rules (see PRD "Trade system") — all commissioner-configurable at creation.
+    injury_trades_allowed  boolean not null default true,
+    injury_trade_timing    text not null default 'as_it_happens',
+    late_roster_adds       boolean not null default false,
+    manual_injury_trades   boolean not null default false,
+    season_ending_only     boolean not null default false,
+    regular_season_trades  boolean not null default false,
+    other_trade_rules      text,
     created_at      timestamptz not null default now(),
     constraint roster_size_bounds check (roster_size between 5 and 50),
     constraint up_count_bounds check (up_count between 1 and roster_size),
-    constraint count_score_bounds check (count_score between 1 and up_count)
+    constraint count_score_bounds check (count_score between 1 and up_count),
+    constraint injury_trade_timing_valid check (injury_trade_timing in ('as_it_happens', 'draft'))
 );
 
 create index if not exists idx_leagues_join_code on public.leagues(join_code);
@@ -186,7 +209,30 @@ create policy "Users can join a league as themselves"
     on public.league_members for insert
     with check (auth.uid() = user_id);
 
+-- ---------- Scores ----------
+-- One row per gymnast/event/week of actual competition scoring.
+-- Populated from a season's meet-by-meet results (see 2026 Competition
+-- Data); admins will enter new weeks manually until a live scores API
+-- (Road to Nationals / Virtius) is available.
+create table if not exists public.scores (
+    id             bigint generated always as identity primary key,
+    gymnast_id     bigint not null references public.gymnasts(id) on delete cascade,
+    event          text not null check (event in ('vault','bars','beam','floor')),
+    season_year    integer not null default 2026,
+    week_number    integer not null,
+    score          numeric(5,3) not null,
+    created_at     timestamptz not null default now()
+);
+
+create index if not exists idx_scores_gymnast_id on public.scores(gymnast_id);
+
+alter table public.scores enable row level security;
+
+create policy "Scores are publicly readable"
+    on public.scores for select
+    using (true);
+
 -- =============================================================
--- Future tables (Rosters, Scores, Trades, etc.) will be added in
+-- Future tables (Rosters, Trades, etc.) will be added in
 -- later migrations.
 -- =============================================================

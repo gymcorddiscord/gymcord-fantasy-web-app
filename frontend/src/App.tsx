@@ -18,8 +18,15 @@ import { ReactElement } from 'react';
 // refreshing /gymnasts directly would 404 without one. Hash routes
 // (/#/gymnasts) always resolve to index.html.
 
+// Local-only escape hatch so pages behind RequireAuth can be previewed
+// without a real Discord login. Gated on both dev mode and an explicit env
+// flag so it can never activate in a deployed build. Set
+// VITE_DEV_BYPASS_AUTH=true in frontend/.env.local (gitignored) to enable.
+const DEV_BYPASS_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+
 function RequireAuth({ children }: { children: ReactElement }) {
     const { user, loading } = useAuth();
+    if (DEV_BYPASS_AUTH) return children;
     if (loading) return <div className="full-page-loader">Loading…</div>;
     if (!user) return <Navigate to="/login" replace />;
     return children;

@@ -35,6 +35,7 @@ Product Requirements Document (PRD) Product Name: Gymcord Fantasy Product Type: 
    - 9.5 [Trade Restrictions & Deadlines](#95-trade-restrictions--deadlines)
    - 9.6 [Trade History & Logging](#96-trade-history--logging)
 10. [Scoring Rules & Logic](#10-scoring-rules--logic)
+   - 10.9 [Gymnast Score View Metrics](#109-gymnast-score-view-metrics)
 11. [Analytics Requirements](#11-analytics-requirements)
 12. [Authentication & User Flow](#12-authentication--user-flow)
 13. [Technical Considerations](#13-technical-considerations)
@@ -713,7 +714,8 @@ Additional Navigation Controls
   - Location: Below lineup management area, left side  
   - Format: "Show: \[Avg\] \[High\] \[Last\]" button group  
   - Default: "Avg" selected  
-  - Behavior: Toggles which score metric displays for each gymnast
+  - Behavior: Toggles which score metric displays for each gymnast  
+  - Full set of supported view metrics (Average, Median, Most Recent/Last, High, NQS) defined per-apparatus in Section 10.9 — this toggle may expand beyond the initial 3-way Avg/High/Last set to surface Median and NQS as well
 
 7.3 Page-Specific Header Patterns
 
@@ -983,7 +985,8 @@ Top Controls Row:
   - Default: "AVG" selected  
   - Active option: Purple/accent background  
   - Inactive options: Dark/transparent background  
-  - Smooth slide animation between selections
+  - Smooth slide animation between selections  
+  - "MEDIAN" and "NQS" are additional supported view metrics (defined in 10.9) not yet in this 3-way toggle — expand to a dropdown or wider pill group when added
 
 Primary Layout: Matrix/Table View
 
@@ -1131,9 +1134,10 @@ This Week's Meet Section:
 Season Stats Section (for hovered apparatus):
 
 - Average: 9.925  
+- Median: 9.912  
 - High: 9.975 (with date: "Jan 12")  
 - Last: 9.900 (with date: "Feb 7")  
-- NQS: 9.938 (if applicable)  
+- NQS: 9.938 (if applicable — see 10.9)  
 - Meets Competed: 8
 
 Recent Performance:
@@ -1166,6 +1170,8 @@ Dual Meet
 Season Stats (FX):
 
 Average: 9.925
+
+Median: 9.912
 
 High: 9.975 (Jan 12\)
 
@@ -1700,14 +1706,16 @@ Enhanced Lineup Management Features:
 
 - Enhanced Score Display Options:  
     
-  - Previous meet score  
+  - Previous meet score (Most Recent)  
   - High score (season)  
   - Average score (season)  
+  - Median score (season)  
   - Average home score  
   - Average away score  
-  - NQS (National Qualifying Score)  
+  - NQS (National Qualifying Score — see 10.9 for definition/formula)  
   - Rolling 3-meet average  
-  - Sparkline visualizations showing performance over time (Google Sheets style)
+  - Sparkline visualizations showing performance over time (Google Sheets style)  
+  - Core five view metrics (Average, Median, Most Recent, High, NQS) are defined per-apparatus in Section 10.9
 
 
 - Lineup Status Indicator:  
@@ -2491,8 +2499,8 @@ Key Features:
 
 9.0.1 Gymnast Pool Definition
 
-- All NCAA Division I women's gymnasts competing in current season  
-- Estimated total: \~1,500-2,000 gymnasts  
+- All NCAA women's gymnasts competing in current season, across Divisions I, II, and III  
+- Estimated total: \~1,500-2,000 gymnasts (Div I), plus Div II/III programs  
 - Data includes:  
   - Full name  
   - School/University  
@@ -2508,7 +2516,7 @@ Pool Filtering (League Configuration):
   - Specific conferences (e.g., SEC, Big Ten, Pac-12)  
   - Specific schools  
   - Custom list via CSV upload  
-- Default: All NCAA Division I gymnasts available
+- Default: All NCAA gymnasts available (Div I, II, and III)
 
 9.0.2 Roster Structure Active Lineup vs Bench:
 
@@ -3284,6 +3292,24 @@ Future Enhancements:
 - Bonus for individual event titles  
 - Penalties for falls or major deductions  
 - Conference-specific scoring adjustments  
+
+10.9 Gymnast Score View Metrics
+
+Purpose: When setting lineups, users need to gauge how a gymnast is likely to score. The app supports five view metrics for a gymnast's scores, calculated **independently per apparatus** (VT, UB, BB, FX) from that gymnast's season results:
+
+1. **Average** — mean of all of the gymnast's scores on that apparatus this season.  
+2. **Median** — middle value of all of the gymnast's scores on that apparatus this season (average of the two middle values if an even number of scores). Less skewed by one standout or one bad meet than Average.  
+3. **Most Recent** ("Last" / "PREV") — the score from the gymnast's most recent meet on that apparatus. If she competed twice in the same week, use the higher of the two (consistent with the double-meet rule in 10.2).  
+4. **High** — the gymnast's best score on that apparatus this season.  
+5. **NQS** (National Qualifying Score) — the NCAA's official per-event qualifying-score formula, used nationally to rank and seed individual gymnasts for regional/national qualification. Calculation: take the gymnast's **3 highest away scores** and **3 highest home scores** on that apparatus this season (6 scores total), **drop the single highest** of those six, then **average the remaining five**. If she has fewer than 3 away or 3 home scores, NQS is not yet calculable ("NQS: —" / "not yet available") until enough meets have been competed.  
+   - Note: for the 2026 season the NCAA changed the *team* NQS formula (used for postseason team qualification) to a 9-meet formula, but individual/per-event NQS — the one relevant here — is unchanged. Re-verify this against the NCAA's current rules before each season, since the formula has changed before and may again.
+
+Display:
+
+- These are the same five metrics referenced by the Score Display Toggle (7.2, 8.2) and the gymnast hover tooltip (8.2). Anywhere a gymnast's "score" is shown for lineup-decision purposes, the user should be able to pick which of these five it reflects.  
+- NQS additionally doubles as a credibility/sourcing signal — since it mirrors the NCAA's own published number, users can cross-check it against Road to Nationals.  
+- All five recalculate as new meet results come in during the season; like other season-stat displays they are not locked historical data (contrast with 10.5's locked *weekly team* scores).
+
 11. Analytics Requirements
 
 Analytics should be:

@@ -76,6 +76,10 @@ Open http://localhost:5173.
 
 See the PRD (`gymcord-fantasy-prd.md`) for the full feature set.
 
+### Gymnast score views
+
+Gymnast scores are viewable/calculable five ways, per apparatus: **Average**, **Median**, **Most Recent**, **High**, and **NQS** (National Qualifying Score — the NCAA's official per-event qualifying formula: 3 highest away + 3 highest home scores that season, drop the highest of those six, average the remaining five). See PRD Section 10.9 for full definitions.
+
 ---
 
 ## Deploying to GitHub Pages
