@@ -214,7 +214,7 @@ function columnId(event: ApparatusKey, metric: MetricKey): ColumnId {
 // across apparatus — not stored data, computed per row.
 type CompositeKey = 'aa4' | 'top3' | 'top2' | 'top1';
 const COMPOSITE_COLUMNS: { key: CompositeKey; n: number; label: string; title: string }[] = [
-    { key: 'aa4',  n: 4, label: 'AA',    title: 'All-around average — sum of all 4 apparatus averages' },
+    { key: 'aa4',  n: 4, label: 'AA',    title: 'All-around average: sum of all 4 apparatus averages' },
     { key: 'top3', n: 3, label: '3-Evt', title: 'Sum of the 3 highest apparatus averages' },
     { key: 'top2', n: 2, label: '2-Evt', title: 'Sum of the 2 highest apparatus averages' },
     { key: 'top1', n: 1, label: '1-Evt', title: 'Highest single apparatus average' }

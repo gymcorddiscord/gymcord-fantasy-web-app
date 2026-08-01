@@ -8,7 +8,7 @@ export function Register() {
         <main className="page-narrow">
             <h1 className="page-title">Join Gymcord Fantasy</h1>
             <p className="page-subtitle">
-                There's no separate sign-up step — continuing with Discord creates your account automatically.
+                There's no separate sign-up step. Continuing with Discord creates your account automatically.
             </p>
 
             <div className="card">

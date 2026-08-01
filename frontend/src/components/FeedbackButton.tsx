@@ -76,7 +76,7 @@ export function FeedbackButton() {
                                     autoFocus
                                 />
                                 {status === 'error' && (
-                                    <p className="form-error">Something went wrong sending that — try again.</p>
+                                    <p className="form-error">Something went wrong sending that. Try again.</p>
                                 )}
                                 <div className="feedback-actions">
                                     <button type="button" className="btn btn-ghost" onClick={close}>

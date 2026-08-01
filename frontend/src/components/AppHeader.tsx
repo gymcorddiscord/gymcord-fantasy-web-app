@@ -18,18 +18,12 @@ export function AppHeader() {
     return (
         <header className="app-header">
             <div className="hero-inner">
-                <Link to="/" className="brand">
+                <Link to={user ? '/home' : '/'} className="brand">
                     <h1>Gymcord Fantasy</h1>
                 </Link>
                 <nav>
                     {user ? (
                         <>
-                            <NavLink
-                                to="/home"
-                                className={({ isActive }) => `header-link${isActive ? ' header-link--active' : ''}`}
-                            >
-                                Home
-                            </NavLink>
                             <NavLink
                                 to="/gymnasts"
                                 className={({ isActive }) => `header-link${isActive ? ' header-link--active' : ''}`}

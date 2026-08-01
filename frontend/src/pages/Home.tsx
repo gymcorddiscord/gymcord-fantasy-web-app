@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import { api, LeagueMembership } from '../lib/api';
 
-const EVENTS = ['VT', 'UB', 'BB', 'FX'];
-
 export function Home() {
     const { user } = useAuth();
     const [leagues, setLeagues] = useState<LeagueMembership[] | null>(null);
@@ -29,7 +27,7 @@ export function Home() {
             <p className="page-subtitle">
                 {leagues && leagues.length > 0
                     ? "Here's where things stand across your leagues."
-                    : "You're not in any leagues yet — create one, or ask a friend for their invite link."}
+                    : "You're not in any leagues yet. Create one, or ask a friend for their invite link."}
             </p>
 
             {leagues === null ? (
@@ -71,12 +69,7 @@ export function Home() {
                     <div className="nav-tile__head">
                         <h3>Gymnasts</h3>
                     </div>
-                    <p>Browse the 2026 NCAA field — averages and most recent scores on every apparatus.</p>
-                    <div className="apparatus-chips">
-                        {EVENTS.map((e) => (
-                            <span className="apparatus-chip" key={e}>{e}</span>
-                        ))}
-                    </div>
+                    <p>Browse the 2026 NCAA field: averages and most recent scores on every apparatus.</p>
                 </Link>
 
                 <div className="nav-tile nav-tile--disabled">

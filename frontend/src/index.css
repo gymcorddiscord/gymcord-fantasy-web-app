@@ -118,12 +118,14 @@ input, select, textarea {
 .app-header .brand {
     color: #FFFFFF;
     text-decoration: none;
+    flex-shrink: 0;
 }
 .app-header .brand h1 {
     margin: 0;
     font-size: 22px;
     letter-spacing: 0.2px;
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    white-space: nowrap;
 }
 .app-header .brand:hover { text-decoration: none; }
 
@@ -137,6 +139,46 @@ input, select, textarea {
 .header-username {
     color: rgba(255, 255, 255, 0.9);
     font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+/* Buttons never wrap their own label — a wrapped "Log in" reading
+   "Log/in" is worse than letting the row scroll or shrink around it. */
+.btn { white-space: nowrap; }
+
+@media (max-width: 640px) {
+    .app-header {
+        padding: 14px 16px;
+    }
+    .app-header .hero-inner {
+        flex-wrap: wrap;
+        row-gap: 10px;
+    }
+    .app-header .brand h1 {
+        font-size: 17px;
+    }
+    .app-header nav {
+        gap: 8px;
+        width: 100%;
+        justify-content: flex-end;
+    }
+    .header-username {
+        max-width: 84px;
+    }
+    .app-header .btn,
+    .app-header .header-link {
+        padding: 7px 12px;
+        font-size: 13px;
+    }
+    .theme-toggle {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+        border-radius: 10px;
+    }
 }
 
 /* The header's gradient is the same in light and dark mode (matches the
@@ -245,6 +287,9 @@ input[type="number"] {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 12px;
+}
+@media (max-width: 560px) {
+    .row3 { grid-template-columns: 1fr; }
 }
 
 .section-title {
@@ -381,6 +426,16 @@ textarea:focus {
     gap: 16px;
     padding: 20px 24px;
 }
+@media (max-width: 560px) {
+    .league-card {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 18px 20px;
+    }
+    .league-card .btn {
+        width: 100%;
+    }
+}
 
 input:focus {
     outline: none;
@@ -465,6 +520,30 @@ input:focus {
     color: var(--text);
     font-weight: 600;
     box-shadow: var(--shadow);
+}
+@media (max-width: 640px) {
+    /* A full-width label pill is the one thing on the page most likely to
+       sit on top of a CTA at this width — shrink to an icon-only button
+       and let page content reserve room below it instead. */
+    .feedback-fab {
+        right: 14px;
+        bottom: 14px;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0;
+    }
+    .feedback-fab::before {
+        content: "💬";
+        font-size: 18px;
+    }
+    .page,
+    .page-narrow {
+        padding-bottom: 88px;
+    }
 }
 .feedback-fab:hover {
     background: var(--surface-2);
@@ -551,31 +630,26 @@ input:focus {
     gap: 12px;
     justify-content: center;
 }
-
-/* ---------- Apparatus chips (VT/UB/BB/FX signature) ---------- */
-
-.apparatus-chips {
-    display: flex;
-    gap: 6px;
+.landing-hero .cta-row .btn {
+    width: auto;
 }
-.apparatus-chips--center {
-    justify-content: center;
-    margin-bottom: 28px;
-}
-.apparatus-chip {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 34px;
-    padding: 4px 8px;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    background: var(--surface-2);
-    color: var(--text-muted);
-    font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
+
+@media (max-width: 640px) {
+    .landing-hero {
+        padding: 48px 0 32px;
+    }
+    .landing-hero h1 {
+        font-size: 32px;
+    }
+    .landing-hero p {
+        font-size: 16px;
+    }
+    .landing-hero .cta-row {
+        flex-direction: column;
+    }
+    .landing-hero .cta-row .btn {
+        width: 100%;
+    }
 }
 
 /* ---------- Landing: how-it-works feature grid ---------- */
