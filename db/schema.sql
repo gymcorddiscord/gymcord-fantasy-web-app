@@ -54,6 +54,7 @@ create table if not exists public.ncaa_teams (
     short_name    text not null,         -- e.g. 'Oklahoma'
     conference    text,                  -- e.g. 'SEC', 'Big 12'
     primary_color text,                  -- hex like '#841617'
+    division      text check (division in ('Div I', 'Div II', 'Div III')),  -- 2026 roadtonationals.com scrape; null for a handful of unmatched teams
     created_at    timestamptz not null default now()
 );
 
@@ -232,7 +233,48 @@ create policy "Scores are publicly readable"
     on public.scores for select
     using (true);
 
+-- ---------- Roster Gymnasts ----------
+-- One row per (team, gymnast): Phase 1 manual roster-building (PRD 9.0.3
+-- Method 1) — first-come-first-served, no draft. league_id is denormalized
+-- alongside league_member_id so a gymnast's exclusivity can be enforced
+-- league-wide (one team per league), not just within a single team.
+create table if not exists public.roster_gymnasts (
+    id               bigint generated always as identity primary key,
+    league_id        bigint not null references public.leagues(id) on delete cascade,
+    league_member_id bigint not null references public.league_members(id) on delete cascade,
+    gymnast_id       bigint not null references public.gymnasts(id) on delete cascade,
+    created_at       timestamptz not null default now(),
+    unique (league_id, gymnast_id),
+    unique (league_member_id, gymnast_id)
+);
+
+create index if not exists idx_roster_gymnasts_league_id on public.roster_gymnasts(league_id);
+create index if not exists idx_roster_gymnasts_league_member_id on public.roster_gymnasts(league_member_id);
+create index if not exists idx_roster_gymnasts_gymnast_id on public.roster_gymnasts(gymnast_id);
+
+alter table public.roster_gymnasts enable row level security;
+
+create policy "Roster gymnasts are publicly readable"
+    on public.roster_gymnasts for select
+    using (true);
+
+create policy "Users can add gymnasts to their own team roster"
+    on public.roster_gymnasts for insert
+    with check (exists (
+        select 1 from public.league_members
+        where league_members.id = roster_gymnasts.league_member_id
+        and league_members.user_id = auth.uid()
+    ));
+
+create policy "Users can remove gymnasts from their own team roster"
+    on public.roster_gymnasts for delete
+    using (exists (
+        select 1 from public.league_members
+        where league_members.id = roster_gymnasts.league_member_id
+        and league_members.user_id = auth.uid()
+    ));
+
 -- =============================================================
--- Future tables (Rosters, Trades, etc.) will be added in
+-- Future tables (Trades, Waivers, Draft, etc.) will be added in
 -- later migrations.
 -- =============================================================

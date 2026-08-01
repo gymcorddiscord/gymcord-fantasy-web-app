@@ -12,6 +12,8 @@ export interface User {
     role: 'player' | 'commissioner' | 'admin' | string;
 }
 
+export type Division = 'Div I' | 'Div II' | 'Div III';
+
 export interface NcaaTeam {
     id: number;
     slug: string;
@@ -19,6 +21,7 @@ export interface NcaaTeam {
     shortName: string;
     conference: string | null;
     color: string | null;
+    division: Division | null;
 }
 
 export interface Gymnast {
@@ -39,6 +42,16 @@ export interface Gymnast {
         beam: number | null;
         floor: number | null;
     };
+    // Official NCAA National Qualifying Score — 2026 regular-season
+    // snapshot scraped from roadtonationals.com, null where not yet
+    // calculable (needs >=3 home + >=3 away scores) or no catalog match.
+    eventNqs: {
+        vault: number | null;
+        bars: number | null;
+        beam: number | null;
+        floor: number | null;
+    };
+    aaNqs: number | null;
     seasonAverage: number | null;
     team: NcaaTeam;
 }
@@ -84,7 +97,8 @@ function toNcaaTeam(row: any): NcaaTeam {
         name: row.name,
         shortName: row.short_name,
         conference: row.conference,
-        color: row.primary_color
+        color: row.primary_color,
+        division: row.division
     };
 }
 
@@ -123,47 +137,66 @@ export const api = {
     ncaaTeams: async (): Promise<{ teams: NcaaTeam[] }> => {
         const { data, error } = await supabase
             .from('ncaa_teams')
-            .select('id, slug, name, short_name, conference, primary_color')
+            .select('id, slug, name, short_name, conference, primary_color, division')
             .order('name');
         if (error) throw error;
         return { teams: (data || []).map(toNcaaTeam) };
     },
 
     gymnasts: async (
-        params: { team?: string; search?: string; event?: EventFilter } = {}
+        params: { teams?: string[]; divisions?: Division[]; search?: string; event?: EventFilter } = {}
     ): Promise<{ count: number; gymnasts: Gymnast[] }> => {
         // `!inner` on the embedded team is required so filtering by
-        // `ncaa_teams.slug` below works (PostgREST only supports filtering
-        // an embedded resource when it's joined as inner).
-        let query = supabase
-            .from('gymnasts')
-            .select(
-                `
-                id, first_name, last_name, class_year,
-                competes_vault, competes_bars, competes_beam, competes_floor, is_all_around,
-                vault_avg, bars_avg, beam_avg, floor_avg, season_average,
-                ncaa_teams!inner ( id, slug, name, short_name, conference, primary_color )
-                `,
-                { count: 'exact' }
-            )
-            .eq('active', true)
-            .order('last_name');
+        // `ncaa_teams.slug`/`ncaa_teams.division` below works (PostgREST
+        // only supports filtering an embedded resource when it's an
+        // inner join).
+        const buildQuery = () => {
+            let query = supabase
+                .from('gymnasts')
+                .select(
+                    `
+                    id, first_name, last_name, class_year,
+                    competes_vault, competes_bars, competes_beam, competes_floor, is_all_around,
+                    vault_avg, bars_avg, beam_avg, floor_avg, season_average,
+                    vault_nqs, bars_nqs, beam_nqs, floor_nqs, aa_nqs,
+                    ncaa_teams!inner ( id, slug, name, short_name, conference, primary_color, division )
+                    `,
+                    { count: 'exact' }
+                )
+                .eq('active', true)
+                .order('last_name');
 
-        if (params.search) {
-            const term = params.search.replace(/[%,]/g, '');
-            query = query.or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%`);
-        }
-        if (params.team) {
-            query = query.eq('ncaa_teams.slug', params.team);
-        }
-        if (params.event) {
-            query = query.eq(EVENT_COLUMN[params.event], true);
+            if (params.search) {
+                const term = params.search.replace(/[%,]/g, '');
+                query = query.or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%`);
+            }
+            if (params.teams && params.teams.length > 0) {
+                query = query.in('ncaa_teams.slug', params.teams);
+            }
+            if (params.divisions && params.divisions.length > 0) {
+                query = query.in('ncaa_teams.division', params.divisions);
+            }
+            if (params.event) {
+                query = query.eq(EVENT_COLUMN[params.event], true);
+            }
+            return query;
+        };
+
+        // PostgREST caps a single request at 1000 rows regardless of an
+        // explicit range past that — well under the ~2150-gymnast pool, so
+        // fetch in pages until a page comes back short.
+        const PAGE_SIZE = 1000;
+        let rows: any[] = [];
+        let count = 0;
+        for (let from = 0; ; from += PAGE_SIZE) {
+            const { data, count: pageCount, error } = await buildQuery().range(from, from + PAGE_SIZE - 1);
+            if (error) throw error;
+            count = pageCount ?? rows.length + (data?.length ?? 0);
+            rows = rows.concat(data || []);
+            if (!data || data.length < PAGE_SIZE) break;
         }
 
-        const { data, count, error } = await query;
-        if (error) throw error;
-
-        const gymnasts: Gymnast[] = (data || []).map((g: any) => ({
+        const gymnasts: Gymnast[] = rows.map((g: any) => ({
             id: g.id,
             firstName: g.first_name,
             lastName: g.last_name,
@@ -181,11 +214,18 @@ export const api = {
                 beam: g.beam_avg,
                 floor: g.floor_avg
             },
+            eventNqs: {
+                vault: g.vault_nqs,
+                bars: g.bars_nqs,
+                beam: g.beam_nqs,
+                floor: g.floor_nqs
+            },
+            aaNqs: g.aa_nqs,
             seasonAverage: g.season_average,
             team: toNcaaTeam(g.ncaa_teams)
         }));
 
-        return { count: count ?? gymnasts.length, gymnasts };
+        return { count: count || gymnasts.length, gymnasts };
     },
 
     weeklyScores: async (

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import { api, LeagueMembership } from '../lib/api';
 
+const EVENTS = ['VT', 'UB', 'BB', 'FX'];
+
 export function Home() {
     const { user } = useAuth();
     const [leagues, setLeagues] = useState<LeagueMembership[] | null>(null);
@@ -63,15 +65,35 @@ export function Home() {
                 </div>
             )}
 
-            <div className="card" style={{ marginTop: 24 }}>
-                <h3 style={{ marginTop: 0 }}>Coming soon</h3>
-                <ul style={{ color: 'var(--text-muted)', lineHeight: 1.7, paddingLeft: 20 }}>
-                    <li>
-                        <Link to="/gymnasts">Browse the gymnast pool</Link>
-                    </li>
-                    <li>Draft your gymnasts</li>
-                    <li>Set your weekly lineup</li>
-                </ul>
+            <div className="section-title" style={{ marginTop: 32 }}>Get moving</div>
+            <div className="nav-tile-grid">
+                <Link to="/gymnasts" className="nav-tile">
+                    <div className="nav-tile__head">
+                        <h3>Gymnasts</h3>
+                    </div>
+                    <p>Browse the 2026 NCAA field — averages and most recent scores on every apparatus.</p>
+                    <div className="apparatus-chips">
+                        {EVENTS.map((e) => (
+                            <span className="apparatus-chip" key={e}>{e}</span>
+                        ))}
+                    </div>
+                </Link>
+
+                <div className="nav-tile nav-tile--disabled">
+                    <div className="nav-tile__head">
+                        <h3>Draft</h3>
+                        <span className="badge badge-muted">Coming soon</span>
+                    </div>
+                    <p>Build your roster once drafting opens for your league.</p>
+                </div>
+
+                <div className="nav-tile nav-tile--disabled">
+                    <div className="nav-tile__head">
+                        <h3>Lineup</h3>
+                        <span className="badge badge-muted">Coming soon</span>
+                    </div>
+                    <p>Choose who competes each week on vault, bars, beam, and floor.</p>
+                </div>
             </div>
         </main>
     );

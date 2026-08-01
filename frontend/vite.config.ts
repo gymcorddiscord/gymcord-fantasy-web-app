@@ -9,7 +9,7 @@ export default defineConfig({
     base: '/gymcord-fantasy-web-app/',
     plugins: [react()],
     server: {
-        port: 5173
+        port: Number(process.env.PORT) || 5173
     },
     build: {
         outDir: 'dist',
