@@ -602,7 +602,6 @@ export function Gymnasts() {
 
     return (
         <main className="page page--wide">
-            <h1 className="page-title">Gymnasts</h1>
             <p className="page-subtitle">
                 Review 2026 season data to help you draft your teams.
             </p>
@@ -612,7 +611,7 @@ export function Gymnasts() {
                 <div className="columns-menu" ref={columnsMenuRef}>
                     <button
                         type="button"
-                        className="btn btn-ghost columns-menu__trigger"
+                        className="gds-button gds-button--secondary columns-menu__trigger"
                         onClick={() => setColumnsMenuOpen(o => !o)}
                         aria-expanded={columnsMenuOpen}
                     >

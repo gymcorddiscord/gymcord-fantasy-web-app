@@ -34,7 +34,7 @@ export function Home() {
                 <div className="full-page-loader">Loading…</div>
             ) : leagues.length === 0 ? (
                 <div className="card">
-                    <Link to="/leagues/new" className="btn btn-primary" style={{ width: 'auto' }}>
+                    <Link to="/leagues/new" className="gds-button gds-button--primary">
                         Create a League
                     </Link>
                 </div>
@@ -50,14 +50,14 @@ export function Home() {
                             </div>
                             <button
                                 type="button"
-                                className="btn btn-ghost"
+                                className="gds-button gds-button--secondary"
                                 onClick={() => copyInviteLink(m.league.joinCode, m.id)}
                             >
                                 {copiedId === m.id ? 'Copied!' : 'Copy invite link'}
                             </button>
                         </div>
                     ))}
-                    <Link to="/leagues/new" className="btn btn-ghost" style={{ width: 'auto' }}>
+                    <Link to="/leagues/new" className="gds-button gds-button--secondary">
                         + Create another league
                     </Link>
                 </div>

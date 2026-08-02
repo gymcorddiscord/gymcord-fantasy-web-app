@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { SignInWithDiscordButton, Button } from 'gymcord-design-system';
 import { api, League } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { setPendingJoinCode } from '../lib/pendingJoin';
@@ -95,9 +96,7 @@ export function JoinLeague() {
                         <p style={{ marginTop: 0, color: 'var(--text-muted)' }}>
                             Sign in with Discord to join this league.
                         </p>
-                        <button type="button" className="btn btn-primary" onClick={handleSignIn}>
-                            Continue with Discord
-                        </button>
+                        <SignInWithDiscordButton label="Continue with Discord" onClick={handleSignIn} className="auth-discord-btn" />
                     </>
                 ) : (
                     <form onSubmit={handleSubmit} noValidate>
@@ -117,9 +116,9 @@ export function JoinLeague() {
                                 autoFocus
                             />
                         </div>
-                        <button type="submit" className="btn btn-primary" disabled={submitting}>
+                        <Button type="submit" disabled={submitting} style={{ width: '100%' }}>
                             {submitting ? 'Joining…' : 'Join League'}
-                        </button>
+                        </Button>
                     </form>
                 )}
             </div>

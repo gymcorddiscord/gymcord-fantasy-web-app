@@ -1,5 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from 'gymcord-design-system';
 import { api } from '../lib/api';
 
 const PRESETS = [
@@ -361,9 +362,9 @@ export function CreateLeague() {
                         <strong>{upCount}</strong> per event, and the top <strong>{countScore}</strong> scores will count.
                     </p>
 
-                    <button type="submit" className="btn btn-primary" disabled={submitting}>
+                    <Button type="submit" disabled={submitting} style={{ width: '100%' }}>
                         {submitting ? 'Creating league…' : 'Create League'}
-                    </button>
+                    </Button>
                 </form>
             </div>
         </main>

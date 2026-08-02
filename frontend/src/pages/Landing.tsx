@@ -25,10 +25,10 @@ export function Landing() {
                     picks stack up once the routines are scored.
                 </p>
                 <div className="cta-row">
-                    <Link to="/register" className="btn btn-primary">
+                    <Link to="/register" className="gds-button gds-button--primary">
                         Create an account
                     </Link>
-                    <Link to="/login" className="btn btn-ghost">
+                    <Link to="/login" className="gds-button gds-button--secondary">
                         Log In
                     </Link>
                 </div>

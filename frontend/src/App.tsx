@@ -10,6 +10,7 @@ import { Home } from './pages/Home';
 import { Gymnasts } from './pages/Gymnasts';
 import { CreateLeague } from './pages/CreateLeague';
 import { JoinLeague } from './pages/JoinLeague';
+import { Credits } from './pages/Credits';
 import { takePendingJoinCode } from './lib/pendingJoin';
 import { ReactElement } from 'react';
 
@@ -104,6 +105,7 @@ function Shell() {
                         }
                     />
                     <Route path="/join/:code" element={<JoinLeague />} />
+                    <Route path="/credits" element={<Credits />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             )}
