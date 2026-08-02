@@ -120,10 +120,6 @@ input, select, textarea {
     max-width: 1100px;
     margin: 0 auto;
 }
-.gds-app-header__logo-link {
-    text-decoration: none;
-    flex-shrink: 0;
-}
 .app-header-tabs--pushed {
     margin-left: auto;
 }
@@ -685,6 +681,17 @@ a.nav-tile:hover {
     background: var(--surface-2);
     color: var(--text-dim);
     border: 1px solid var(--border);
+}
+
+.create-league-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+.gds-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 /* ---------- Pill nav (for future logged-in app) ---------- */

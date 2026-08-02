@@ -58,6 +58,7 @@ export function AppHeader() {
     if (!user) {
         return (
             <LoggedOutHeader
+                logoHref="#/home"
                 theme={theme}
                 onThemeToggle={setTheme}
                 onLogIn={() => navigate('/login')}
@@ -69,6 +70,7 @@ export function AppHeader() {
     if (location.pathname.startsWith('/gymnasts')) {
         return (
             <DSAppHeader
+                logoHref="#/home"
                 phase="preseason"
                 activeTab="gymnasts"
                 onTabChange={(tab) => { if (tab === 'gymnasts') navigate('/gymnasts'); }}
@@ -80,7 +82,7 @@ export function AppHeader() {
     }
 
     if (location.pathname.startsWith('/credits')) {
-        return <DSAppHeader phase="standard" theme={theme} onThemeToggle={setTheme} onLogOut={onLogout} />;
+        return <DSAppHeader logoHref="#/home" phase="standard" theme={theme} onThemeToggle={setTheme} onLogOut={onLogout} />;
     }
 
     const activeTab = NAV_TABS.find((t) => location.pathname.startsWith(TAB_PATHS[t.value]))?.value ?? NAV_TABS[0].value;
