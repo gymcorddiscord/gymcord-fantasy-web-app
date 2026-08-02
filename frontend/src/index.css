@@ -25,6 +25,7 @@
     --error-bg:    rgba(239, 68, 68, 0.12);
     /* Brand gradient — used on the logo mark and a few hero accents */
     --brand-grad:  linear-gradient(135deg, #34D399 0%, #1ED9F0 50%, #A855F7 100%);
+    --hero-grad:   linear-gradient(100deg, #C026D3 0%, #8B5CF6 35%, #64748B 55%, #22C55E 100%);
     --shadow:      0 4px 16px rgba(0, 0, 0, 0.5);
     --shadow-glow: 0 0 24px rgba(0, 217, 255, 0.18);
     --radius:      8px;
@@ -37,11 +38,6 @@
     --scoreboard-bg:   #04070a;
     --scoreboard-glow: #FFB020;
     --scoreboard-dim:  #B98A3E;
-    /* Tells the browser to theme native chrome it renders itself (file
-       input button, date picker popup/icon, select popup, scrollbars) to
-       match — without this, those pieces default to a light OS theme
-       regardless of our own dark palette. */
-    color-scheme: dark;
 }
 
 [data-theme="light"] {
@@ -63,7 +59,6 @@
     --error-bg:    rgba(239, 68, 68, 0.08);
     --shadow:      0 4px 16px rgba(0, 0, 0, 0.06);
     --shadow-glow: 0 0 24px rgba(0, 172, 193, 0.15);
-    color-scheme: light;
 }
 
 * {
@@ -107,37 +102,47 @@ input, select, textarea {
     flex-direction: column;
 }
 
-/* The app header itself (logo, nav tabs, theme toggle, account menu) is the
-   Gymcord Design System's AppHeader/LoggedOutHeader, composed here from its
-   exported primitives — see components/AppHeader.tsx. These rules only fill
-   in the layout glue the DS doesn't own: centering the max-width row (every
-   header variant renders edge-to-edge otherwise) and pushing the nav tabs
-   to the right of the logo on the composed (non-preseason) header — the
-   DS's own header assumes a WeekNavigator sits between them to do that via
-   its auto margins, which that variant doesn't have. */
-.gds-app-header {
+.app-header {
+    background: var(--hero-grad);
+    padding: 20px 32px;
+}
+
+.app-header .hero-inner {
     max-width: 1100px;
     margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
 }
-.gds-app-header__logo-link {
+
+.app-header .brand {
+    color: #FFFFFF;
     text-decoration: none;
     flex-shrink: 0;
 }
-.app-header-tabs--pushed {
-    margin-left: auto;
+.app-header .brand h1 {
+    margin: 0;
+    font-size: 22px;
+    letter-spacing: 0.2px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    white-space: nowrap;
 }
-.app-header-account-name {
-    padding: 0 12px;
-    height: 32px;
+.app-header .brand:hover { text-decoration: none; }
+
+.app-header nav {
+    margin-left: auto;
     display: flex;
+    gap: 12px;
     align-items: center;
-    color: var(--text-tertiary);
-    font-size: 12px;
-    font-weight: 700;
+}
+
+.header-username {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 200px;
+    max-width: 120px;
 }
 
 /* Buttons never wrap their own label — a wrapped "Log in" reading
@@ -145,17 +150,62 @@ input, select, textarea {
 .btn { white-space: nowrap; }
 
 @media (max-width: 640px) {
-    .gds-app-header {
-        padding: 0 16px;
-        gap: 12px;
+    .app-header {
+        padding: 14px 16px;
     }
-    .gds-logo__wordmark {
-        display: none;
+    .app-header .hero-inner {
+        flex-wrap: wrap;
+        row-gap: 10px;
     }
-    .gds-app-header__tabs .gds-segmented__item {
-        padding: 8px 10px;
+    .app-header .brand h1 {
+        font-size: 17px;
+    }
+    .app-header nav {
+        gap: 8px;
+        width: 100%;
+        justify-content: flex-end;
+    }
+    .header-username {
+        max-width: 84px;
+    }
+    .app-header .btn,
+    .app-header .header-link {
+        padding: 7px 12px;
+        font-size: 13px;
+    }
+    .theme-toggle {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+        border-radius: 10px;
     }
 }
+
+/* The header's gradient is the same in light and dark mode (matches the
+   other Gymcord pages), so its buttons need their own fixed styling
+   rather than the theme-dependent --text/--border tokens. */
+.app-header .btn-ghost {
+    color: #FFFFFF;
+    border-color: rgba(255, 255, 255, 0.35);
+}
+.app-header .btn-ghost:hover {
+    background: rgba(10, 14, 20, 0.25);
+}
+
+.theme-toggle {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(10, 14, 20, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+.theme-toggle:hover { background: rgba(10, 14, 20, 0.75); }
+.theme-toggle:active { transform: scale(0.94); }
 
 /* ---------- Pages ---------- */
 
@@ -207,15 +257,6 @@ h1.page-title {
     box-shadow: var(--shadow);
 }
 
-/* The DS SignInWithDiscordButton keeps Discord's own brand sizing (pill,
-   fixed height/padding) rather than stretching full-width like .btn-primary,
-   so it needs to be centered in the auth card instead of filling it. */
-.auth-discord-btn {
-    display: flex;
-    width: fit-content;
-    margin: 0 auto;
-}
-
 .form-row {
     display: flex;
     flex-direction: column;
@@ -232,8 +273,7 @@ label {
 input[type="text"],
 input[type="email"],
 input[type="password"],
-input[type="number"],
-input[type="date"] {
+input[type="number"] {
     background: var(--surface-2);
     color: var(--text);
     border: 1px solid var(--border);
@@ -241,71 +281,6 @@ input[type="date"] {
     padding: 10px 12px;
     width: 100%;
     transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-/* Chromium renders the calendar-icon trigger as its own sub-element inside
-   the date input; color-scheme (above) makes it light-on-dark already, this
-   just gives it the same hover affordance as the rest of the control. */
-input[type="date"]::-webkit-calendar-picker-indicator {
-    cursor: pointer;
-    border-radius: 4px;
-    padding: 2px;
-}
-input[type="date"]::-webkit-calendar-picker-indicator:hover {
-    background: var(--surface);
-}
-
-/* Native <select> — appearance:none drops the OS-drawn control (including
-   its arrow) so it inherits our palette like a text input; the arrow is
-   redrawn as a background SVG so it isn't just a bare dropdown. */
-select {
-    appearance: none;
-    -webkit-appearance: none;
-    background: var(--surface-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 10px 34px 10px 12px;
-    width: 100%;
-    cursor: pointer;
-    transition: border-color 0.15s, box-shadow 0.15s;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5L6 8L9.5 4.5' stroke='%2394A3B8' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-}
-select:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.18);
-}
-option {
-    background: var(--surface-2);
-    color: var(--text);
-}
-
-/* Native <input type="file"> renders its button and filename label as one
-   opaque OS-drawn control that CSS can't reach directly — ::file-selector-
-   button is the one part modern browsers let us restyle; the filename text
-   next to it just needs a color that isn't the OS default black-on-white. */
-input[type="file"] {
-    color: var(--text-muted);
-    font-size: 13px;
-}
-input[type="file"]::file-selector-button {
-    background: var(--surface-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 8px 14px;
-    margin-right: 12px;
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
-}
-input[type="file"]::file-selector-button:hover {
-    background: var(--surface);
-    border-color: var(--accent);
 }
 
 .row3 {
@@ -836,6 +811,27 @@ a.nav-tile:hover {
     align-items: center;
     justify-content: center;
     color: var(--text-muted);
+}
+
+/* ---------- Header links (logged-in nav) ---------- */
+
+.header-link {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: var(--radius);
+    text-decoration: none;
+    transition: color 0.15s, background 0.15s;
+}
+.header-link:hover {
+    color: #FFFFFF;
+    background: rgba(10, 14, 20, 0.25);
+    text-decoration: none;
+}
+.header-link--active {
+    color: #FFFFFF;
+    background: rgba(10, 14, 20, 0.4);
 }
 
 /* ---------- Gymnasts page ---------- */
@@ -1369,166 +1365,4 @@ a.nav-tile:hover {
     font-size: 12px;
     color: var(--text-muted);
     text-align: center;
-}
-
-/* ---------- Scores Import (admin) ---------- */
-
-.badge-warning {
-    background: var(--warning);
-    color: #1F2937;
-}
-.badge-error {
-    background: var(--error);
-    color: #fff;
-}
-
-.import-summary {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 16px;
-}
-
-.import-table {
-    border-collapse: collapse;
-    width: 100%;
-    min-width: 640px;
-    font-size: 13px;
-}
-.import-table th,
-.import-table td {
-    padding: 8px 12px;
-    text-align: left;
-    border-bottom: 1px solid var(--border-soft);
-    white-space: nowrap;
-}
-.import-table td[colspan] {
-    white-space: normal;
-}
-.import-table thead th {
-    background: var(--surface-2);
-    border-bottom: 1px solid var(--border);
-    font-size: 11px;
-    color: var(--text-muted);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.flagged-row-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.flagged-row__meta {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    font-size: 13px;
-    color: var(--text-muted);
-}
-
-.flagged-row__resolve {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 8px;
-}
-
-.flagged-row__actions {
-    display: flex;
-    gap: 8px;
-}
-
-.gymnast-picker {
-    position: relative;
-    min-width: 260px;
-}
-.gymnast-picker input {
-    width: 100%;
-    padding: 8px 12px;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    background: var(--bg-elevated);
-    color: var(--text);
-}
-.gymnast-picker__list {
-    position: absolute;
-    z-index: 5;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-}
-.gymnast-picker__list button {
-    display: block;
-    width: 100%;
-    text-align: left;
-    padding: 8px 12px;
-    background: none;
-    border: none;
-    color: var(--text);
-    font-size: 13px;
-}
-.gymnast-picker__list button:hover {
-    background: var(--surface-2);
-}
-.gymnast-picker__list button span {
-    color: var(--text-muted);
-}
-
-/* ---------- Credits ---------- */
-
-.credits-group {
-    margin-bottom: 8px;
-}
-
-.credits-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.credits-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    color: var(--text);
-    transition: border-color 0.15s ease, transform 0.1s ease;
-}
-.credits-item:hover {
-    border-color: var(--accent);
-    text-decoration: none;
-    transform: translateY(-1px);
-}
-.credits-item__main {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-}
-.credits-item__name {
-    font-weight: 600;
-    font-size: 14px;
-}
-.credits-item__role {
-    color: var(--text-muted);
-    font-size: 12.5px;
-}
-
-.credits-footnote {
-    margin-top: 28px;
 }

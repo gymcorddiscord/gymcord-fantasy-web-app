@@ -10,8 +10,6 @@ import { Home } from './pages/Home';
 import { Gymnasts } from './pages/Gymnasts';
 import { CreateLeague } from './pages/CreateLeague';
 import { JoinLeague } from './pages/JoinLeague';
-import { AdminScoresImport } from './pages/AdminScoresImport';
-import { Credits } from './pages/Credits';
 import { takePendingJoinCode } from './lib/pendingJoin';
 import { ReactElement } from 'react';
 
@@ -31,15 +29,6 @@ function RequireAuth({ children }: { children: ReactElement }) {
     if (DEV_BYPASS_AUTH) return children;
     if (loading) return <div className="full-page-loader">Loading…</div>;
     if (!user) return <Navigate to="/login" replace />;
-    return children;
-}
-
-function RequireAdmin({ children }: { children: ReactElement }) {
-    const { user, loading } = useAuth();
-    if (DEV_BYPASS_AUTH) return children;
-    if (loading) return <div className="full-page-loader">Loading…</div>;
-    if (!user) return <Navigate to="/login" replace />;
-    if (user.role !== 'admin') return <Navigate to="/home" replace />;
     return children;
 }
 
@@ -114,16 +103,7 @@ function Shell() {
                             </RequireAuth>
                         }
                     />
-                    <Route
-                        path="/admin/scores-import"
-                        element={
-                            <RequireAdmin>
-                                <AdminScoresImport />
-                            </RequireAdmin>
-                        }
-                    />
                     <Route path="/join/:code" element={<JoinLeague />} />
-                    <Route path="/credits" element={<Credits />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             )}

@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { SignInWithDiscordButton } from 'gymcord-design-system';
 import { useAuth } from '../lib/AuthContext';
 
 export function Login() {
@@ -11,7 +10,9 @@ export function Login() {
             <p className="page-subtitle">Sign in with Discord to manage your lineups.</p>
 
             <div className="card">
-                <SignInWithDiscordButton label="Continue with Discord" onClick={signInWithDiscord} className="auth-discord-btn" />
+                <button type="button" className="btn btn-primary" onClick={signInWithDiscord}>
+                    Continue with Discord
+                </button>
             </div>
 
             <p className="auth-footer">

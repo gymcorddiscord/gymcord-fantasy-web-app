@@ -694,13 +694,6 @@ Week Navigation
 
 Additional Navigation Controls
 
-- "Sign Up" / "Log In" buttons (Guest only)  
-    
-  - Location: Top right corner  
-  - Visible only when the user is logged out (Guest state)  
-  - Hidden entirely once the user is logged in — no placeholder or disabled state shown in their place
-
-
 - New Team button (Lineups page only)  
     
   - Location: Top right corner  
@@ -842,8 +835,7 @@ Key Features: Overview of:
 Call-to-action:
 
 - "Sign up"  
-- "Log in"  
-- Both shown top right, Guest state only — hidden from the header once the user is logged in (see 7.2)
+- "Log in"
 
 Data Displayed (Read-only):
 
