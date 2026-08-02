@@ -210,28 +210,195 @@ create policy "Users can join a league as themselves"
     on public.league_members for insert
     with check (auth.uid() = user_id);
 
+-- ---------- Score import week/season derivation ----------
+-- Fixed system-wide rules (PRD 12.3): season starts January 2 each year,
+-- lineups lock every Friday 9:00 AM ET. Meets happen after that lock
+-- through the following Thursday, so weeks are anchored to Fridays:
+-- Week 1 = the first Friday on/after Jan 2 of that season through the
+-- following Thursday; each later week is a 7-day block from there. Any
+-- meet_date before that first Friday (e.g. an early exhibition) clamps
+-- into Week 1 rather than going negative.
+create or replace function public.week_number_for_meet_date(meet_date date)
+returns integer
+language sql
+immutable
+set search_path = public, pg_temp
+as $$
+    with season as (
+        select make_date(extract(year from meet_date)::int, 1, 2) as season_start
+    ),
+    lock as (
+        select season_start + ((5 - extract(dow from season_start)::int + 7) % 7) as first_friday
+        from season
+    )
+    select greatest(1, ((meet_date - first_friday) / 7) + 1)
+    from lock;
+$$;
+
+-- The NCAA season runs entirely within one calendar year (Jan-April), so
+-- season_year is just the meet_date's year.
+create or replace function public.season_year_for_meet_date(meet_date date)
+returns integer
+language sql
+immutable
+set search_path = public, pg_temp
+as $$
+    select extract(year from meet_date)::int;
+$$;
+
+-- ---------- Score Import Batches ----------
+-- One row per CSV upload (PRD 13.5.3 Scores Import CSV), for admin audit
+-- history.
+create table if not exists public.score_import_batches (
+    id             bigint generated always as identity primary key,
+    uploaded_by    uuid references auth.users(id) on delete set null,
+    filename       text not null,
+    season_year    integer not null,
+    row_count      integer not null default 0,
+    inserted_count integer not null default 0,
+    flagged_count  integer not null default 0,
+    created_at     timestamptz not null default now()
+);
+
+alter table public.score_import_batches enable row level security;
+
+create policy "Admins can view import batches"
+    on public.score_import_batches for select
+    using (
+        exists (
+            select 1 from public.profiles
+            where profiles.id = auth.uid() and profiles.role = 'admin'
+        )
+    );
+
+create policy "Admins can create import batches"
+    on public.score_import_batches for insert
+    with check (
+        exists (
+            select 1 from public.profiles
+            where profiles.id = auth.uid() and profiles.role = 'admin'
+        )
+    );
+
+-- ---------- Score Import Flagged Rows ----------
+-- CSV rows that couldn't be auto-inserted: either gymnast_name +
+-- gymnast_school didn't resolve to exactly one gymnast ('no_gymnast_match'),
+-- or the row matched an existing score for the same gymnast/event/week
+-- ('possible_duplicate'). Held here for manual admin approval rather than
+-- silently dropped or auto-inserted.
+create table if not exists public.score_import_flagged_rows (
+    id                   bigint generated always as identity primary key,
+    batch_id             bigint not null references public.score_import_batches(id) on delete cascade,
+    row_number           integer not null,
+    meet_date            date not null,
+    gymnast_name         text not null,
+    gymnast_school       text not null,
+    event                text not null check (event in ('vault','bars','beam','floor')),
+    score                numeric(5,3) not null,
+    meet_name            text,
+    opponent             text,
+    reason               text not null check (reason in ('no_gymnast_match', 'possible_duplicate')),
+    matched_gymnast_id   bigint references public.gymnasts(id),
+    status               text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+    resolved_gymnast_id  bigint references public.gymnasts(id),
+    resolved_by          uuid references auth.users(id),
+    resolved_at          timestamptz,
+    created_at           timestamptz not null default now()
+);
+
+create index if not exists idx_score_import_flagged_rows_batch_id on public.score_import_flagged_rows(batch_id);
+create index if not exists idx_score_import_flagged_rows_status on public.score_import_flagged_rows(status);
+
+alter table public.score_import_flagged_rows enable row level security;
+
+create policy "Admins can view flagged rows"
+    on public.score_import_flagged_rows for select
+    using (
+        exists (
+            select 1 from public.profiles
+            where profiles.id = auth.uid() and profiles.role = 'admin'
+        )
+    );
+
+create policy "Admins can create flagged rows"
+    on public.score_import_flagged_rows for insert
+    with check (
+        exists (
+            select 1 from public.profiles
+            where profiles.id = auth.uid() and profiles.role = 'admin'
+        )
+    );
+
+create policy "Admins can resolve flagged rows"
+    on public.score_import_flagged_rows for update
+    using (
+        exists (
+            select 1 from public.profiles
+            where profiles.id = auth.uid() and profiles.role = 'admin'
+        )
+    );
+
 -- ---------- Scores ----------
 -- One row per gymnast/event/week of actual competition scoring.
 -- Populated from a season's meet-by-meet results (see 2026 Competition
 -- Data); admins will enter new weeks manually until a live scores API
--- (Road to Nationals / Virtius) is available.
+-- (Road to Nationals / Virtius) is available. meet_date/meet_name/opponent
+-- and import_batch_id are nullable — the pre-loaded 2026 season data
+-- predates the CSV import flow (see "Scores Import" below) and has no
+-- source meet on file; only rows created through that flow populate them.
 create table if not exists public.scores (
-    id             bigint generated always as identity primary key,
-    gymnast_id     bigint not null references public.gymnasts(id) on delete cascade,
-    event          text not null check (event in ('vault','bars','beam','floor')),
-    season_year    integer not null default 2026,
-    week_number    integer not null,
-    score          numeric(5,3) not null,
-    created_at     timestamptz not null default now()
+    id              bigint generated always as identity primary key,
+    gymnast_id      bigint not null references public.gymnasts(id) on delete cascade,
+    event           text not null check (event in ('vault','bars','beam','floor')),
+    season_year     integer not null default 2026,
+    week_number     integer not null,
+    score           numeric(5,3) not null,
+    meet_date       date,
+    meet_name       text,
+    opponent        text,
+    import_batch_id bigint references public.score_import_batches(id) on delete set null,
+    created_at      timestamptz not null default now()
 );
 
 create index if not exists idx_scores_gymnast_id on public.scores(gymnast_id);
+create index if not exists idx_scores_import_batch_id on public.scores(import_batch_id);
 
 alter table public.scores enable row level security;
 
 create policy "Scores are publicly readable"
     on public.scores for select
     using (true);
+
+-- scores previously had no insert policy at all (only the select policy
+-- above), so admin CSV import couldn't write through the anon/authenticated
+-- client — this is required for that flow to function.
+create policy "Admins can insert scores"
+    on public.scores for insert
+    with check (
+        exists (
+            select 1 from public.profiles
+            where profiles.id = auth.uid() and profiles.role = 'admin'
+        )
+    );
+
+create policy "Admins can update scores"
+    on public.scores for update
+    using (
+        exists (
+            select 1 from public.profiles
+            where profiles.id = auth.uid() and profiles.role = 'admin'
+        )
+    );
+
+-- A gymnast can legitimately have two scores for the same event in the
+-- same week (two meets that week) — those aren't duplicates, and meet_date
+-- is what disambiguates them. A true duplicate is the same gymnast/event/
+-- meet_date entered twice; enforce that at the DB level. Partial (meet_date
+-- is not null) so the ~18k legacy rows with no meet_date on file (imported
+-- before this column existed) are unaffected.
+create unique index if not exists uq_scores_gymnast_event_meet_date
+    on public.scores (gymnast_id, event, meet_date)
+    where meet_date is not null;
 
 -- ---------- Roster Gymnasts ----------
 -- One row per (team, gymnast): Phase 1 manual roster-building (PRD 9.0.3

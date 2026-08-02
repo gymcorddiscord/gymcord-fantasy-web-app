@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import 'gymcord-design-system/styles.css';
 import './index.css';
 import { applyTheme, getInitialTheme } from './lib/theme';
 

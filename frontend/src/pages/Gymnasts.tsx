@@ -602,7 +602,6 @@ export function Gymnasts() {
 
     return (
         <main className="page page--wide">
-            <h1 className="page-title">Gymnasts</h1>
             <p className="page-subtitle">
                 Review 2026 season data to help you draft your teams.
             </p>
