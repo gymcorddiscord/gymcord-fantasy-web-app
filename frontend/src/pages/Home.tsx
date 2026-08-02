@@ -34,9 +34,12 @@ export function Home() {
                 <div className="full-page-loader">Loading…</div>
             ) : leagues.length === 0 ? (
                 <div className="card">
-                    <Link to="/leagues/new" className="gds-button gds-button--primary">
-                        Create a League
-                    </Link>
+                    <div className="create-league-cta">
+                        <button type="button" className="gds-button gds-button--primary" disabled>
+                            Create a League
+                        </button>
+                        <span className="badge badge-muted">Coming soon</span>
+                    </div>
                 </div>
             ) : (
                 <div className="league-list">
@@ -57,9 +60,12 @@ export function Home() {
                             </button>
                         </div>
                     ))}
-                    <Link to="/leagues/new" className="gds-button gds-button--secondary">
-                        + Create another league
-                    </Link>
+                    <div className="create-league-cta">
+                        <button type="button" className="gds-button gds-button--secondary" disabled>
+                            + Create another league
+                        </button>
+                        <span className="badge badge-muted">Coming soon</span>
+                    </div>
                 </div>
             )}
 
