@@ -19,7 +19,7 @@ export function Landing() {
     return (
         <main className="page">
             <section className="landing-hero">
-                <h1>Draft NCAA gymnasts. Score real 2026 meets.</h1>
+                <h1>Draft NCAA gymnasts.</h1>
                 <p>
                     Create a team, set your lineup each week across all four events, and see how your
                     picks stack up once the routines are scored.
@@ -29,7 +29,7 @@ export function Landing() {
                         Create an account
                     </Link>
                     <Link to="/login" className="btn btn-ghost">
-                        I already have one
+                        Log In
                     </Link>
                 </div>
             </section>
