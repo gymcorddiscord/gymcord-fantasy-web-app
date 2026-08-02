@@ -107,13 +107,16 @@ input, select, textarea {
 
 /* The app header itself (logo, nav tabs, theme toggle, account menu) is the
    Gymcord Design System's AppHeader/LoggedOutHeader, composed here from its
-   exported primitives — see components/AppHeader.tsx. These rules only fill
-   in the layout glue the DS doesn't own: centering the max-width row (every
-   header variant renders edge-to-edge otherwise) and pushing the nav tabs
-   to the right of the logo on the composed (non-preseason) header — the
-   DS's own header assumes a WeekNavigator sits between them to do that via
-   its auto margins, which that variant doesn't have. */
-.gds-app-header {
+   exported primitives — see components/AppHeader.tsx. The DS's own
+   .gds-app-header is a full-bleed bar (its background/border span the
+   viewport by design); .gds-app-header__row is the DS's inner content row,
+   which is what we constrain to match the page content width — capping
+   .gds-app-header itself would shrink the bar's background along with the
+   content. These rules also push the nav tabs to the right of the logo on
+   the composed (non-preseason) header — the DS's own header assumes a
+   WeekNavigator sits between them to do that via its auto margins, which
+   that variant doesn't have. */
+.gds-app-header__row {
     max-width: 1100px;
     margin: 0 auto;
 }
@@ -143,7 +146,7 @@ input, select, textarea {
 .btn { white-space: nowrap; }
 
 @media (max-width: 640px) {
-    .gds-app-header {
+    .gds-app-header__row {
         padding: 0 16px;
         gap: 12px;
     }

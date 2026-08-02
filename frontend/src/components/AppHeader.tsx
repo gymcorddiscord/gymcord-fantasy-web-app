@@ -87,32 +87,34 @@ export function AppHeader() {
 
     return (
         <header className="gds-app-header">
-            <Link to="/home" className="gds-app-header__logo-link">
-                <Logo />
-            </Link>
-            <div className="gds-app-header__tabs app-header-tabs--pushed">
-                <SegmentedToggle size="lg" value={activeTab} onChange={(tab) => navigate(TAB_PATHS[tab])} options={NAV_TABS} />
-            </div>
-            <div className="gds-app-header__actions">
-                <ThemeToggle theme={theme} onToggle={setTheme} />
-                <div className="gds-dropdown" ref={accountRef}>
-                    <button
-                        type="button"
-                        className="gds-app-header__account"
-                        aria-label="Account"
-                        aria-expanded={accountMenuOpen}
-                        onClick={() => setAccountMenuOpen((o) => !o)}
-                    >
-                        <UserCircleIcon size={26} />
-                    </button>
-                    {accountMenuOpen ? (
-                        <div className="gds-dropdown__menu gds-app-header__account-menu" role="menu">
-                            <div className="app-header-account-name">{user.displayName}</div>
-                            <button type="button" role="menuitem" className="gds-dropdown__item" onClick={onLogout}>
-                                Log out
-                            </button>
-                        </div>
-                    ) : null}
+            <div className="gds-app-header__row">
+                <Link to="/home" className="gds-app-header__logo-link">
+                    <Logo />
+                </Link>
+                <div className="gds-app-header__tabs app-header-tabs--pushed">
+                    <SegmentedToggle size="lg" value={activeTab} onChange={(tab) => navigate(TAB_PATHS[tab])} options={NAV_TABS} />
+                </div>
+                <div className="gds-app-header__actions">
+                    <ThemeToggle theme={theme} onToggle={setTheme} />
+                    <div className="gds-dropdown" ref={accountRef}>
+                        <button
+                            type="button"
+                            className="gds-app-header__account"
+                            aria-label="Account"
+                            aria-expanded={accountMenuOpen}
+                            onClick={() => setAccountMenuOpen((o) => !o)}
+                        >
+                            <UserCircleIcon size={26} />
+                        </button>
+                        {accountMenuOpen ? (
+                            <div className="gds-dropdown__menu gds-app-header__account-menu" role="menu">
+                                <div className="app-header-account-name">{user.displayName}</div>
+                                <button type="button" role="menuitem" className="gds-dropdown__item" onClick={onLogout}>
+                                    Log out
+                                </button>
+                            </div>
+                        ) : null}
+                    </div>
                 </div>
             </div>
         </header>
