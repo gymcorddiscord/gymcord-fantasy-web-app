@@ -111,6 +111,19 @@ export function AppHeader() {
                         {accountMenuOpen ? (
                             <div className="gds-dropdown__menu gds-app-header__account-menu" role="menu">
                                 <div className="app-header-account-name">{user.displayName}</div>
+                                {user.role === 'admin' && (
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="gds-dropdown__item"
+                                        onClick={() => {
+                                            setAccountMenuOpen(false);
+                                            navigate('/admin/scores-import');
+                                        }}
+                                    >
+                                        Scores Import
+                                    </button>
+                                )}
                                 <button type="button" role="menuitem" className="gds-dropdown__item" onClick={onLogout}>
                                     Log out
                                 </button>
