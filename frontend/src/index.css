@@ -1942,16 +1942,17 @@ a.nav-tile:hover {
     align-items: center;
 }
 .slider-block__val-input {
-    width: 56px;
+    width: 36px;
     font-size: 14px;
     font-weight: 700;
     color: var(--brand-primary);
     background: var(--bg-2);
     border: 1px solid var(--border-default);
     border-radius: 6px;
-    padding: 4px 8px;
+    padding: 4px 6px;
     text-align: right;
     font-family: inherit;
+    -moz-appearance: textfield;
 }
 .slider-block__val-input:focus {
     outline: none;
@@ -1959,7 +1960,8 @@ a.nav-tile:hover {
 }
 .slider-block__val-input::-webkit-inner-spin-button,
 .slider-block__val-input::-webkit-outer-spin-button {
-    opacity: 1;
+    -webkit-appearance: none;
+    margin: 0;
 }
 .slider-block input[type='range'] {
     width: 100%;
