@@ -51,6 +51,11 @@ function defaultAutodraftStart(): Date {
     return d;
 }
 
+function clamp(value: number, min: number, max: number): number {
+    if (Number.isNaN(value)) return min;
+    return Math.min(max, Math.max(min, Math.round(value)));
+}
+
 function launchConfetti() {
     const duration = 400;
     const animationEnd = Date.now() + duration;
@@ -366,7 +371,14 @@ export function CreateLeague() {
                                     <Text size="caption" tone="secondary">
                                         Gymnasts per Team (Roster Size)
                                     </Text>
-                                    <span className="slider-block__val">{rosterSize}</span>
+                                    <input
+                                        type="number"
+                                        className="slider-block__val-input"
+                                        min={5}
+                                        max={50}
+                                        value={rosterSize}
+                                        onChange={(e) => e.target.value !== '' && onRosterSizeChange(clamp(Number(e.target.value), 5, 50))}
+                                    />
                                 </div>
                                 <input
                                     type="range"
@@ -381,7 +393,14 @@ export function CreateLeague() {
                                     <Text size="caption" tone="secondary">
                                         "Up" per Week (Lineup Size)
                                     </Text>
-                                    <span className="slider-block__val">{upCount}</span>
+                                    <input
+                                        type="number"
+                                        className="slider-block__val-input"
+                                        min={1}
+                                        max={rosterSize}
+                                        value={upCount}
+                                        onChange={(e) => e.target.value !== '' && onUpCountChange(clamp(Number(e.target.value), 1, rosterSize))}
+                                    />
                                 </div>
                                 <input type="range" min={1} max={rosterSize} value={upCount} onChange={(e) => onUpCountChange(Number(e.target.value))} />
                             </div>
@@ -390,7 +409,14 @@ export function CreateLeague() {
                                     <Text size="caption" tone="secondary">
                                         "Count" per Week (Scores That Count)
                                     </Text>
-                                    <span className="slider-block__val">{countScore}</span>
+                                    <input
+                                        type="number"
+                                        className="slider-block__val-input"
+                                        min={1}
+                                        max={upCount}
+                                        value={countScore}
+                                        onChange={(e) => e.target.value !== '' && onCountScoreChange(clamp(Number(e.target.value), 1, upCount))}
+                                    />
                                 </div>
                                 <input type="range" min={1} max={upCount} value={countScore} onChange={(e) => onCountScoreChange(Number(e.target.value))} />
                             </div>

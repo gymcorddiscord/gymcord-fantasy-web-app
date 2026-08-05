@@ -9,6 +9,7 @@ import {
     ThemeToggle,
     UserCircleIcon,
     PeopleIcon,
+    ClipboardTextIcon,
     type AppHeaderTab,
     type LeagueOption,
     type SegmentedToggleOption
@@ -18,13 +19,15 @@ import { applyTheme, getInitialTheme, Theme } from '../lib/theme';
 import { api, LeagueMembership } from '../lib/api';
 import { TeamBadge } from './TeamBadge';
 
-type NavTab = 'gymnasts';
+type NavTab = 'draft' | 'gymnasts';
 
 const NAV_TABS: SegmentedToggleOption<NavTab>[] = [
+    { value: 'draft', label: 'Draft', icon: <ClipboardTextIcon size={16} /> },
     { value: 'gymnasts', label: 'Gymnasts', icon: <PeopleIcon size={16} /> }
 ];
 
 const TAB_PATHS: Record<NavTab, string> = {
+    draft: '/home',
     gymnasts: '/gymnasts'
 };
 
@@ -122,12 +125,33 @@ export function AppHeader() {
         );
     }
 
-    // Join/Create League wizards + View League + Add Gymnasts (roster
-    // building) are all part of the same pre-draft flow — "Draft" stays the
-    // active nav tab throughout, even though none of them route through the
-    // (not-yet-built) /draft page itself.
-    const isLeagueRoute = /^\/leagues\/(new|\d+)/.test(location.pathname);
-    if (location.pathname.startsWith('/join') || isLeagueRoute) {
+    // View League shows the switcher pointed at whichever league is on
+    // screen, so the player can jump straight to another one without
+    // detouring through the dashboard.
+    const viewLeagueMatch = location.pathname.match(/^\/leagues\/(\d+)$/);
+    if (viewLeagueMatch) {
+        return (
+            <DSAppHeader
+                logoHref="#/home"
+                phase="preseason"
+                activeTab="draft"
+                onTabChange={onPreseasonTabChange}
+                leagues={leagueOptions}
+                activeLeagueId={viewLeagueMatch[1]}
+                onLeagueChange={(id) => navigate(`/leagues/${id}`)}
+                theme={theme}
+                onThemeToggle={setTheme}
+                onLogOut={onLogout}
+            />
+        );
+    }
+
+    // Join/Create League wizards + Add Gymnasts (roster building) are all
+    // part of the same pre-draft flow — "Draft" stays the active nav tab
+    // throughout, even though none of them route through the (not-yet-built)
+    // /draft page itself.
+    const isLeagueFlowRoute = /^\/leagues\/(new|\d+\/roster)/.test(location.pathname);
+    if (location.pathname.startsWith('/join') || isLeagueFlowRoute) {
         return (
             <DSAppHeader
                 logoHref="#/home"
@@ -153,12 +177,8 @@ export function AppHeader() {
                 <Link to="/home" className="gds-app-header__logo-link">
                     <Logo />
                 </Link>
-                {location.pathname.startsWith('/home') && leagueOptions.length > 0 && (
-                    <LeagueSwitcher
-                        leagues={leagueOptions}
-                        activeLeagueId={leagueOptions[0].id}
-                        onChange={(id) => navigate(`/leagues/${id}`)}
-                    />
+                {leagueOptions.length > 0 && (
+                    <LeagueSwitcher leagues={leagueOptions} activeLeagueId={null} onChange={(id) => navigate(`/leagues/${id}`)} />
                 )}
                 <div className="gds-app-header__tabs app-header-tabs--pushed">
                     <SegmentedToggle size="lg" value={activeTab} onChange={(tab) => navigate(TAB_PATHS[tab])} options={NAV_TABS} />

@@ -1664,11 +1664,25 @@ a.nav-tile:hover {
 .team-settings-link:hover {
     color: var(--brand-primary);
 }
-.view-league-topbar {
+.league-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.league-summary__head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 24px;
+    gap: 12px;
+}
+.league-summary__head h2 {
+    margin: 0;
+}
+.league-summary__titles {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
 }
 .gear-button {
     display: inline-flex;
@@ -1927,10 +1941,25 @@ a.nav-tile:hover {
     justify-content: space-between;
     align-items: center;
 }
-.slider-block__val {
+.slider-block__val-input {
+    width: 56px;
     font-size: 14px;
     font-weight: 700;
     color: var(--brand-primary);
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    padding: 4px 8px;
+    text-align: right;
+    font-family: inherit;
+}
+.slider-block__val-input:focus {
+    outline: none;
+    border-color: var(--brand-primary);
+}
+.slider-block__val-input::-webkit-inner-spin-button,
+.slider-block__val-input::-webkit-outer-spin-button {
+    opacity: 1;
 }
 .slider-block input[type='range'] {
     width: 100%;

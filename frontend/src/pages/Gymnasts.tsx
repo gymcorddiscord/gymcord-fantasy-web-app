@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { LoadingIndicator } from 'gymcord-design-system';
 import { api, Division, Gymnast, NcaaTeam } from '../lib/api';
 
 // Plain geometric glyph, not an emoji — every other icon in this table
@@ -508,7 +509,7 @@ export function Gymnasts() {
     }, [selectedTeams, selectedDivisions, search]);
 
     const resultsLabel = useMemo(() => {
-        if (loading) return 'Loading…';
+        if (loading) return null;
         if (items.length === 0) return 'No gymnasts match those filters.';
         return `${items.length} gymnast${items.length === 1 ? '' : 's'}`;
     }, [loading, items.length]);
@@ -600,6 +601,14 @@ export function Gymnasts() {
         };
     }, [columnsMenuOpen]);
 
+    if (loading && items.length === 0) {
+        return (
+            <div className="full-page-loader">
+                <LoadingIndicator />
+            </div>
+        );
+    }
+
     return (
         <main className="page page--wide">
             <p className="page-subtitle">
@@ -607,7 +616,9 @@ export function Gymnasts() {
             </p>
 
             <div className="results-row">
-                <div className="results-count">{resultsLabel}</div>
+                <div className="results-count">
+                    {loading ? <LoadingIndicator size="sm" /> : resultsLabel}
+                </div>
                 <div className="columns-menu" ref={columnsMenuRef}>
                     <button
                         type="button"

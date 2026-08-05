@@ -180,43 +180,29 @@ export function ViewLeague() {
 
     return (
         <main className="page">
-            <div className="view-league-topbar">
-                <Heading level={1}>View League</Heading>
-                <button type="button" className="gear-button" aria-label="Team settings" onClick={openSettings}>
-                    <GearIcon size={20} />
-                </button>
-            </div>
-
             <div className="roster-page">
                 <Card elevation="raised">
-                    <div className="wizard-panel">
-                        <Heading level={2}>{membership.league.name}</Heading>
-                        <dl className="league-preview">
-                            <div>
-                                <dt>Your team</dt>
-                                <dd>{membership.teamName}</dd>
+                    <div className="league-summary">
+                        <div className="league-summary__head">
+                            <div className="league-summary__titles">
+                                <Heading level={2}>{membership.teamName}</Heading>
+                                <Text tone="secondary" size="caption">
+                                    {membership.league.name}
+                                </Text>
                             </div>
-                            <div>
-                                <dt>Teams</dt>
-                                <dd>{memberCount}</dd>
-                            </div>
-                            <div>
-                                <dt>Scoring format</dt>
-                                <dd>
-                                    {membership.league.upCount} up, {membership.league.countScore} count
-                                </dd>
-                            </div>
-                            <div>
-                                <dt>Trade rules</dt>
-                                <dd>{tradeRulesSummary(membership.league)}</dd>
-                            </div>
-                            <div>
-                                <dt>Current week</dt>
-                                <dd>Preseason</dd>
-                            </div>
-                        </dl>
+                            <button type="button" className="gear-button" aria-label="Team settings" onClick={openSettings}>
+                                <GearIcon size={20} />
+                            </button>
+                        </div>
+                        <Text tone="secondary" size="caption">
+                            {memberCount} team{memberCount === 1 ? '' : 's'} · {membership.league.upCount} up, {membership.league.countScore}{' '}
+                            count · {tradeRulesSummary(membership.league)} · Preseason
+                        </Text>
                         <div className="view-league-actions">
-                            <Link to={`/leagues/${membership.id}/roster`} className="gds-button gds-button--primary">
+                            <Link
+                                to={`/leagues/${membership.id}/roster`}
+                                className={`gds-button gds-button--${rosterRows.length >= membership.league.rosterSize ? 'secondary' : 'primary'}`}
+                            >
                                 Build Your Roster ({rosterRows.length}/{membership.league.rosterSize})
                             </Link>
                             <Button variant="secondary" onClick={copyInviteLink}>

@@ -1,12 +1,25 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LoadingIndicator, PlusIcon } from 'gymcord-design-system';
-import { useAuth } from '../lib/AuthContext';
 import { api, LeagueMembership } from '../lib/api';
 
+const GREETINGS = [
+    'Bite any cups today?',
+    "You're the special-list.",
+    'Balance is your superpower.',
+    'Take a deep breath.',
+    'Let it flow.',
+    'Just beam yourself.',
+    'Confidence is your best skill.'
+];
+
+function randomGreeting(): string {
+    return GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+}
+
 export function Home() {
-    const { user } = useAuth();
     const [leagues, setLeagues] = useState<LeagueMembership[] | null>(null);
+    const [greeting] = useState(randomGreeting);
 
     useEffect(() => {
         api.myLeagues()
@@ -16,7 +29,7 @@ export function Home() {
 
     return (
         <main className="page">
-            <h1 className="page-title">Welcome, {user?.displayName}.</h1>
+            <h1 className="page-title">{greeting}</h1>
             <p className="page-subtitle">
                 {leagues && leagues.length > 0
                     ? 'Switch leagues from the menu above, or join another below.'
@@ -44,13 +57,13 @@ export function Home() {
                         <span className="gds-button__icon">
                             <PlusIcon size={16} />
                         </span>
-                        Join another league
+                        Join a League
                     </Link>
                     <Link to="/leagues/new" className="gds-button gds-button--secondary">
                         <span className="gds-button__icon">
                             <PlusIcon size={16} />
                         </span>
-                        Create another league
+                        Create a League
                     </Link>
                 </div>
             )}
