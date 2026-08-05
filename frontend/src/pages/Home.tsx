@@ -7,7 +7,6 @@ import { api, LeagueMembership } from '../lib/api';
 export function Home() {
     const { user } = useAuth();
     const [leagues, setLeagues] = useState<LeagueMembership[] | null>(null);
-    const [copiedId, setCopiedId] = useState<number | null>(null);
 
     useEffect(() => {
         api.myLeagues()
@@ -15,19 +14,12 @@ export function Home() {
             .catch(() => setLeagues([]));
     }, []);
 
-    function copyInviteLink(joinCode: string, membershipId: number) {
-        const url = `${window.location.origin}${import.meta.env.BASE_URL}#/join/${joinCode}`;
-        navigator.clipboard.writeText(url);
-        setCopiedId(membershipId);
-        setTimeout(() => setCopiedId((c) => (c === membershipId ? null : c)), 2000);
-    }
-
     return (
         <main className="page">
             <h1 className="page-title">Welcome, {user?.displayName}.</h1>
             <p className="page-subtitle">
                 {leagues && leagues.length > 0
-                    ? "Here's where things stand across your leagues."
+                    ? 'Switch leagues from the menu above, or join another below.'
                     : "You're not in any leagues yet. Create one, or ask a friend for their invite link."}
             </p>
 
@@ -48,44 +40,20 @@ export function Home() {
                     </div>
                 </div>
             ) : (
-                <div className="league-list">
-                    {leagues.map((m) => (
-                        <div className="card league-card" key={m.id}>
-                            <div>
-                                <h3 style={{ margin: '0 0 4px' }}>{m.league.name}</h3>
-                                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 14 }}>
-                                    {m.teamName} · {m.league.rosterSize}g/{m.league.upCount}u{m.league.countScore}c
-                                </p>
-                            </div>
-                            <div className="league-card__actions">
-                                <Link to={`/leagues/${m.id}`} className="gds-button gds-button--primary">
-                                    View League
-                                </Link>
-                                <button
-                                    type="button"
-                                    className="gds-button gds-button--secondary"
-                                    onClick={() => copyInviteLink(m.league.joinCode, m.id)}
-                                >
-                                    {copiedId === m.id ? 'Copied!' : 'Copy invite link'}
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                    <div className="create-league-cta">
-                        <Link to="/join" className="gds-button gds-button--secondary">
-                            <span className="gds-button__icon">
-                                <PlusIcon size={16} />
-                            </span>
-                            Join another league
-                        </Link>
-                        <button type="button" className="gds-button gds-button--secondary" disabled>
-                            <span className="gds-button__icon">
-                                <PlusIcon size={16} />
-                            </span>
-                            Create another league
-                        </button>
-                        <span className="badge badge-muted">Coming soon</span>
-                    </div>
+                <div className="create-league-cta">
+                    <Link to="/join" className="gds-button gds-button--secondary">
+                        <span className="gds-button__icon">
+                            <PlusIcon size={16} />
+                        </span>
+                        Join another league
+                    </Link>
+                    <button type="button" className="gds-button gds-button--secondary" disabled>
+                        <span className="gds-button__icon">
+                            <PlusIcon size={16} />
+                        </span>
+                        Create another league
+                    </button>
+                    <span className="badge badge-muted">Coming soon</span>
                 </div>
             )}
 

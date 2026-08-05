@@ -48,6 +48,8 @@ export function ViewLeague() {
     const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
     const [leaving, setLeaving] = useState(false);
 
+    const [linkCopied, setLinkCopied] = useState(false);
+
     useEffect(() => {
         // Wait for auth to resolve — user starts out null while the session
         // loads, and checking ownership against a not-yet-loaded user would
@@ -115,6 +117,14 @@ export function ViewLeague() {
         } catch {
             setLeaving(false);
         }
+    }
+
+    function copyInviteLink() {
+        if (!membership) return;
+        const url = `${window.location.origin}${import.meta.env.BASE_URL}#/join/${membership.league.joinCode}`;
+        navigator.clipboard.writeText(url);
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
     }
 
     async function handleRemove(gymnastId: number) {
@@ -205,9 +215,14 @@ export function ViewLeague() {
                                 <dd>Preseason</dd>
                             </div>
                         </dl>
-                        <Link to={`/leagues/${membership.id}/roster`} className="gds-button gds-button--primary">
-                            Build Your Roster ({rosterRows.length}/{membership.league.rosterSize})
-                        </Link>
+                        <div className="view-league-actions">
+                            <Link to={`/leagues/${membership.id}/roster`} className="gds-button gds-button--primary">
+                                Build Your Roster ({rosterRows.length}/{membership.league.rosterSize})
+                            </Link>
+                            <Button variant="secondary" onClick={copyInviteLink}>
+                                {linkCopied ? 'Copied!' : 'Copy Invite Link'}
+                            </Button>
+                        </div>
                     </div>
                 </Card>
 

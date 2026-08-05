@@ -448,29 +448,6 @@ textarea:focus:not([class*="gds-"]) {
     box-shadow: 0 0 0 1px var(--accent);
 }
 
-.league-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-.league-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 20px 24px;
-}
-@media (max-width: 560px) {
-    .league-card {
-        flex-direction: column;
-        align-items: stretch;
-        padding: 18px 20px;
-    }
-    .league-card .btn {
-        width: 100%;
-    }
-}
-
 input:focus:not([class*="gds-"]) {
     outline: none;
     border-color: var(--accent);
@@ -1505,16 +1482,11 @@ a.nav-tile:hover {
     align-items: stretch;
 }
 
-.league-card__actions {
+.view-league-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
-}
-@media (max-width: 560px) {
-    .league-card__actions {
-        flex-direction: column;
-        align-items: stretch;
-    }
+    gap: 12px;
+    flex-wrap: wrap;
 }
 
 .step-indicator {
