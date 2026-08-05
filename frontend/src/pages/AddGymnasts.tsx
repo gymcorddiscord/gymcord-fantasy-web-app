@@ -59,7 +59,7 @@ export function AddGymnasts() {
 
     const [membership, setMembership] = useState<LeagueMembership | null>(null);
     const [loading, setLoading] = useState(true);
-    const [method, setMethod] = useState<Method>('search');
+    const [method, setMethod] = useState<Method>('paste');
 
     const [allGymnasts, setAllGymnasts] = useState<Gymnast[]>([]);
     const [roster, setRoster] = useState<Map<number, RosterEntry>>(new Map());
@@ -384,7 +384,7 @@ export function AddGymnasts() {
                                             )}
                                             {row.kind === 'unmatched' && (
                                                 <div className="paste-result-row__retry">
-                                                    <Text tone="secondary">"{row.pasted}": No match found</Text>
+                                                    <Text tone="secondary">No match found for "{row.pasted}"</Text>
                                                     <TextField
                                                         label="Retry"
                                                         value={row.retryText}

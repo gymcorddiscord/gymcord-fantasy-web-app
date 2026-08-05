@@ -59,7 +59,7 @@ export function TeamIdentityStep({
 
             <div className="team-identity__color-picker">
                 <Text size="caption" tone="secondary">
-                    Team Colors, pick two
+                    Team Colors (pick two)
                 </Text>
                 <div className="team-identity__swatch-grid" role="group" aria-label="Team colors">
                     {TEAM_COLOR_SWATCHES.map((swatch) => {
@@ -97,7 +97,13 @@ export function TeamIdentityStep({
             <div className="team-identity__preview">
                 <TeamBadge color1={colors[0] ?? null} color2={colors[1] ?? null} />
                 <Text tone="secondary">
-                    Your team {teamName.trim() ? `"${teamName.trim()}"` : '""'} in {leagueName}
+                    {teamName.trim() ? (
+                        <>
+                            Your team "{teamName.trim()}" in {leagueName}
+                        </>
+                    ) : (
+                        <>Your team in {leagueName}</>
+                    )}
                 </Text>
             </div>
         </div>
