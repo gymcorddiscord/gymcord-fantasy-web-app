@@ -132,6 +132,49 @@ function toLeague(row: any): League {
     };
 }
 
+// `!inner` is safe unconditionally — gymnasts.ncaa_team_id is NOT NULL, so
+// it behaves like a normal join here, and it's required (not just safe)
+// wherever a caller filters by ncaa_teams.slug/division (PostgREST only
+// supports filtering an embedded resource when it's an inner join).
+const GYMNAST_SELECT = `
+    id, first_name, last_name, class_year,
+    competes_vault, competes_bars, competes_beam, competes_floor, is_all_around,
+    vault_avg, bars_avg, beam_avg, floor_avg, season_average,
+    vault_nqs, bars_nqs, beam_nqs, floor_nqs, aa_nqs,
+    ncaa_teams!inner ( id, slug, name, short_name, conference, primary_color, division )
+`;
+
+function toGymnast(g: any): Gymnast {
+    return {
+        id: g.id,
+        firstName: g.first_name,
+        lastName: g.last_name,
+        classYear: g.class_year,
+        events: {
+            vault: g.competes_vault,
+            bars: g.competes_bars,
+            beam: g.competes_beam,
+            floor: g.competes_floor,
+            allAround: g.is_all_around
+        },
+        eventAverages: {
+            vault: g.vault_avg,
+            bars: g.bars_avg,
+            beam: g.beam_avg,
+            floor: g.floor_avg
+        },
+        eventNqs: {
+            vault: g.vault_nqs,
+            bars: g.bars_nqs,
+            beam: g.beam_nqs,
+            floor: g.floor_nqs
+        },
+        aaNqs: g.aa_nqs,
+        seasonAverage: g.season_average,
+        team: toNcaaTeam(g.ncaa_teams)
+    };
+}
+
 function toMembership(row: any): LeagueMembership {
     return {
         id: row.id,
@@ -178,16 +221,7 @@ export const api = {
         const buildQuery = () => {
             let query = supabase
                 .from('gymnasts')
-                .select(
-                    `
-                    id, first_name, last_name, class_year,
-                    competes_vault, competes_bars, competes_beam, competes_floor, is_all_around,
-                    vault_avg, bars_avg, beam_avg, floor_avg, season_average,
-                    vault_nqs, bars_nqs, beam_nqs, floor_nqs, aa_nqs,
-                    ncaa_teams!inner ( id, slug, name, short_name, conference, primary_color, division )
-                    `,
-                    { count: 'exact' }
-                )
+                .select(GYMNAST_SELECT, { count: 'exact' })
                 .eq('active', true)
                 .order('last_name');
 
@@ -221,34 +255,7 @@ export const api = {
             if (!data || data.length < PAGE_SIZE) break;
         }
 
-        const gymnasts: Gymnast[] = rows.map((g: any) => ({
-            id: g.id,
-            firstName: g.first_name,
-            lastName: g.last_name,
-            classYear: g.class_year,
-            events: {
-                vault: g.competes_vault,
-                bars: g.competes_bars,
-                beam: g.competes_beam,
-                floor: g.competes_floor,
-                allAround: g.is_all_around
-            },
-            eventAverages: {
-                vault: g.vault_avg,
-                bars: g.bars_avg,
-                beam: g.beam_avg,
-                floor: g.floor_avg
-            },
-            eventNqs: {
-                vault: g.vault_nqs,
-                bars: g.bars_nqs,
-                beam: g.beam_nqs,
-                floor: g.floor_nqs
-            },
-            aaNqs: g.aa_nqs,
-            seasonAverage: g.season_average,
-            team: toNcaaTeam(g.ncaa_teams)
-        }));
+        const gymnasts: Gymnast[] = rows.map(toGymnast);
 
         return { count: count || gymnasts.length, gymnasts };
     },
@@ -546,5 +553,45 @@ export const api = {
             .select('gymnast_id');
         if (error) throw error;
         return (data || []).map((row: any) => row.gymnast_id);
+    },
+
+    // One team's roster, in the player's own custom order — nulls (never
+    // explicitly reordered) sort after any explicitly-ordered rows, and ties
+    // (e.g. two freshly-added gymnasts) fall back to insertion order.
+    rosterForMember: async (leagueMemberId: number): Promise<{ gymnastId: number; gymnast: Gymnast }[]> => {
+        const { data, error } = await supabase
+            .from('roster_gymnasts')
+            .select(`gymnast_id, gymnasts ( ${GYMNAST_SELECT} )`)
+            .eq('league_member_id', leagueMemberId)
+            .order('sort_order', { ascending: true, nullsFirst: false })
+            .order('id', { ascending: true });
+        if (error) throw error;
+        return (data || []).map((row: any) => ({ gymnastId: row.gymnast_id, gymnast: toGymnast(row.gymnasts) }));
+    },
+
+    // Persists a full custom order in one round trip via upsert (rather than
+    // one UPDATE per row) — every id in orderedGymnastIds must already be on
+    // this team's roster.
+    reorderRoster: async (leagueId: number, leagueMemberId: number, orderedGymnastIds: number[]): Promise<void> => {
+        if (orderedGymnastIds.length === 0) return;
+        const { error } = await supabase.from('roster_gymnasts').upsert(
+            orderedGymnastIds.map((gymnastId, index) => ({
+                league_id: leagueId,
+                league_member_id: leagueMemberId,
+                gymnast_id: gymnastId,
+                sort_order: index
+            })),
+            { onConflict: 'league_member_id,gymnast_id' }
+        );
+        if (error) throw error;
+    },
+
+    removeFromRoster: async (leagueMemberId: number, gymnastId: number): Promise<void> => {
+        const { error } = await supabase
+            .from('roster_gymnasts')
+            .delete()
+            .eq('league_member_id', leagueMemberId)
+            .eq('gymnast_id', gymnastId);
+        if (error) throw error;
     }
 };

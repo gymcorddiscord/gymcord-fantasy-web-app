@@ -1575,7 +1575,8 @@ a.nav-tile:hover {
 
 .league-preview {
     display: grid;
-    gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px 24px;
     margin: 0;
 }
 .league-preview dt {
@@ -1707,9 +1708,6 @@ a.nav-tile:hover {
 .team-settings-link:hover {
     color: var(--brand-primary);
 }
-.view-league-cta {
-    width: 100%;
-}
 .view-league-topbar {
     display: flex;
     align-items: center;
@@ -1758,6 +1756,53 @@ a.nav-tile:hover {
 }
 .roster-table tr:last-child td {
     border-bottom: none;
+}
+/* Sortable.js-driven states — set via the ghostClass/chosenClass/selectedClass
+   options in ViewLeague.tsx, not plain :hover/:active. */
+.roster-table__row--ghost {
+    opacity: 0.4;
+}
+.roster-table__row--chosen {
+    background: var(--bg-3);
+}
+.roster-table__row--selected {
+    background: color-mix(in srgb, var(--brand-primary) 14%, transparent);
+}
+.roster-table tr[data-gymnast-id] {
+    cursor: pointer;
+}
+.roster-table__handle-cell,
+.roster-table__remove-cell {
+    width: 1%;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+.roster-table__handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    cursor: grab;
+    padding: 4px;
+}
+.roster-table__handle:active {
+    cursor: grabbing;
+}
+.roster-table__remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-pill);
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+}
+.roster-table__remove:hover {
+    background: var(--bg-3);
+    color: var(--danger);
 }
 .danger-zone-inline {
     display: flex;

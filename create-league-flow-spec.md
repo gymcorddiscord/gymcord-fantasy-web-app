@@ -2,9 +2,9 @@
 
 ## Overview
 
-A 4-step wizard that guides a commissioner through creating a new league. Each step must be completed before advancing. Progress is shown via a step indicator at the top.
+A 5-step wizard that guides a commissioner through creating a new league. Each step must be completed before advancing. Progress is shown via a step indicator at the top.
 
-**Steps:** Join or Create → League Name → League Rules → Trade Rules
+**Steps:** Join or Create → League Name → League Rules → Trade Rules → Team Identity → *(Post-Creation) Welcome*
 
 ---
 
@@ -132,7 +132,66 @@ Default selection: Inverse Standings.
 ### Footer Actions
 
 - Left: "← Back" — returns to Step 3 (League Rules)
-- Right: "Create League" (primary CTA, replaces "Next Step") — submits the form and creates the league
+- Right: "Next Step →" — advances to Step 5 (Team Identity). No league is created yet.
+
+---
+
+## Step 5: Team Identity
+
+**Goal:** Capture the name and colors for the commissioner's own team — this is the team the commissioner will manage inside the league they're creating. This is the same component used in the Join a League flow (see `join-league-flow-spec.md`, Step 3) — design once, reuse in both places.
+
+### UI Elements
+
+- **Step indicator** — "4 Team Identity" active, steps 1–3 shown as complete
+- **Heading** — "Set Up Your Team"
+- **Subheading** — "This is the team you'll manage in the league you're creating."
+- **Text input** — Label: "Team Name", required, max 30 characters, character counter, autofocused
+- **Color picker** — Label: "Team Colors", curated swatch grid (not a freeform hex/RGB picker). User selects exactly two distinct swatches.
+- **Live preview** — a small team badge/pill rendered with the two selected colors, updates as swatches are picked
+
+#### Curated Color Palette
+
+Ten swatches, fixed set. Reuses existing design tokens where the hue already exists in the system; fills gaps with new but harmonized values. Source: `gymcord-design-system/src/tokens/tokens.css`.
+
+| Color | Hex | Source |
+|---|---|---|
+| Red | `#dc2626` | New — a standard vibrant red |
+| Orange | `#fb923c` | `--spectrum-orange` |
+| Yellow | `#fbbf24` | `--spectrum-yellow` |
+| Green | `#34d399` | `--spectrum-green` |
+| Blue | `#3b82f6` | `--spectrum-blue` |
+| Purple | `#8b5cf6` | `--spectrum-violet` / `--brand-secondary` |
+| Gold | `#f5c542` | `--tier-gold` |
+| Grey | `#8a8aa0` | New — neutral, sits between `--text-tertiary` and `--border-default` |
+| Black | `#14141f` | New — near-black matching `--bg-1`'s cool violet undertone, not flat `#000000` |
+| White | `#f5f5fa` | `--text-primary` (dark theme) — an off-white consistent with the brand's cool tint, not flat `#ffffff` |
+
+**Note for design agent:** `--injury-long-term` (`#ef4444`) is reserved system-wide to mean long-term injury. The palette's Red swatch above is a distinct hex, so this is a minor context note rather than a blocker — team badges and injury indicators appear in different UI contexts.
+
+### Validation
+
+- Team name required, non-empty, trimmed
+- Exactly two swatches selected, and they must be two *different* swatches (can't pick the same color twice)
+
+### Footer Actions
+
+- Left: "← Back" — returns to Step 4 (Trade Rules)
+- Right: "Create League →" (primary CTA, replaces "Next Step") — submits the entire wizard, creates the league and the commissioner's team, then routes to the Post-Creation Welcome screen
+
+---
+
+## Post-Creation: Welcome Screen
+
+Not a numbered wizard step — a confirmation/routing screen shown immediately after league creation succeeds.
+
+### UI Elements
+
+- Success message: "**[League Name]** is live!"
+- "You're now competing as **[Team Name]**" with the team badge (selected colors) shown
+- Shareable invite link, with a copy-to-clipboard button, for inviting other players
+- Next-action prompts:
+  - **"Build Your Roster"** (primary CTA) — routes to the shared roster-building screen (see `add-gymnasts-flow-spec.md`)
+  - **"Go to Dashboard"** (secondary) — roster building can be finished later; the gymnast pool remains first-come-first-served in the meantime
 
 ---
 
@@ -140,5 +199,5 @@ Default selection: Inverse Standings.
 
 - **State persistence** — navigating back between steps preserves all entered values
 - **Step indicator** — completed steps show a checkmark; the current step is highlighted; future steps are inactive
-- **Default values** — the wizard opens with Standard preset selected (20/10/5) and Waiver Wire + Inverse Standings selected, so a commissioner can advance through all steps without touching anything
+- **Default values** — the wizard opens with Standard preset selected (20/10/5) and Waiver Wire + Inverse Standings selected, so a commissioner can advance through Steps 1–4 without touching anything. Team Identity (Step 5) has no default team name or colors — both are required user input.
 - **Cancel** — available only on Step 2 (League Name); exits the wizard and discards all state. Step 1 (Join or Create) has no Cancel button.
