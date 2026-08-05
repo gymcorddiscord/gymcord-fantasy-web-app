@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 const STEPS = [
     {
         title: 'Draft your roster',
-        body: 'Pick gymnasts from any NCAA program before the season tips off. Your league sets the roster size.',
+        body: "Pick gymnasts from any NCAA program before the season's first salute. Your league sets the roster size.",
     },
     {
         title: 'Set your weekly lineup',
@@ -19,7 +19,7 @@ export function Landing() {
     return (
         <main className="page">
             <section className="landing-hero">
-                <h1>Draft NCAA gymnasts.</h1>
+                <h1>Fantasy gymnastics for gym fans, by gym fans.</h1>
                 <p>
                     Create a team, set your lineup each week across all four events, and see how your
                     picks stack up once the routines are scored.

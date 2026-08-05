@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button, Card, Dialog, Heading, LoadingIndicator, Text } from 'gymcord-design-system';
-import { api, League, JoinLeagueError, LeagueMembership } from '../lib/api';
+import { api, Gymnast, League, JoinLeagueError, LeagueMembership } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { TeamIdentityStep } from '../components/TeamIdentityStep';
 
@@ -23,8 +23,9 @@ export function ViewLeague() {
     const [membership, setMembership] = useState<LeagueMembership | null>(null);
     const [loading, setLoading] = useState(true);
     const [memberCount, setMemberCount] = useState(0);
-    const [rosterCount, setRosterCount] = useState(0);
+    const [rosterGymnasts, setRosterGymnasts] = useState<Gymnast[]>([]);
 
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const [editTeamName, setEditTeamName] = useState('');
     const [editColors, setEditColors] = useState<string[]>([]);
     const [editError, setEditError] = useState<string | null>(null);
@@ -50,10 +51,15 @@ export function ViewLeague() {
             setMembership(m);
             setEditTeamName(m.teamName);
             setEditColors([m.teamColor1, m.teamColor2].filter((c): c is string => Boolean(c)));
-            const [count, roster] = await Promise.all([api.leagueMemberCount(m.leagueId), api.rosterForLeague(m.leagueId)]);
+            const [count, roster, catalog] = await Promise.all([
+                api.leagueMemberCount(m.leagueId),
+                api.rosterForLeague(m.leagueId),
+                api.gymnasts()
+            ]);
             if (cancelled) return;
             setMemberCount(count);
-            setRosterCount(roster.filter((r) => r.leagueMemberId === m.id).length);
+            const myIds = new Set(roster.filter((r) => r.leagueMemberId === m.id).map((r) => r.gymnastId));
+            setRosterGymnasts(catalog.gymnasts.filter((g) => myIds.has(g.id)));
             setLoading(false);
         })();
         return () => {
@@ -61,6 +67,14 @@ export function ViewLeague() {
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [membershipId, authLoading, user?.id]);
+
+    function openSettings() {
+        if (!membership) return;
+        setEditTeamName(membership.teamName);
+        setEditColors([membership.teamColor1, membership.teamColor2].filter((c): c is string => Boolean(c)));
+        setEditError(null);
+        setSettingsOpen(true);
+    }
 
     async function handleSaveTeam() {
         if (!membership) return;
@@ -105,6 +119,13 @@ export function ViewLeague() {
 
     return (
         <main className="page-narrow">
+            <div className="view-league-topbar">
+                <Heading level={1}>View League</Heading>
+                <button type="button" className="gear-button" aria-label="Team settings" onClick={openSettings}>
+                    ⚙
+                </button>
+            </div>
+
             <div className="roster-page">
                 <Card elevation="raised">
                     <div className="wizard-panel">
@@ -134,47 +155,42 @@ export function ViewLeague() {
                             </div>
                         </dl>
                         <Link to={`/leagues/${membership.id}/roster`} className="gds-button gds-button--primary view-league-cta">
-                            Build Your Roster ({rosterCount}/{membership.league.rosterSize})
+                            Build Your Roster ({rosterGymnasts.length}/{membership.league.rosterSize})
                         </Link>
                     </div>
                 </Card>
 
                 <Card elevation="raised">
                     <div className="wizard-panel">
-                        <Heading level={3}>Team Settings</Heading>
-                        <TeamIdentityStep
-                            teamName={editTeamName}
-                            onTeamNameChange={(v) => {
-                                setEditTeamName(v);
-                                setEditError(null);
-                            }}
-                            colors={editColors}
-                            onColorsChange={setEditColors}
-                            leagueName={membership.league.name}
-                            teamNameError={editError}
-                            disabled={savingTeam}
-                        />
-                        <div className="wizard-footer">
-                            <Button
-                                onClick={handleSaveTeam}
-                                disabled={!editTeamName.trim() || editColors.length !== 2 || savingTeam}
-                            >
-                                {savingTeam ? 'Saving' : justSaved ? 'Saved!' : 'Save Changes'}
-                            </Button>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card elevation="flat" style={{ borderColor: 'var(--danger)' }}>
-                    <div className="wizard-panel">
-                        <Heading level={3}>Danger Zone</Heading>
-                        <Text tone="secondary">
-                            Leaving frees every gymnast on your roster back to the pool for other teams in{' '}
-                            {membership.league.name} to draft.
-                        </Text>
-                        <Button className="btn-danger" onClick={() => setLeaveConfirmOpen(true)}>
-                            Leave League
-                        </Button>
+                        <Heading level={3}>
+                            Your Roster ({rosterGymnasts.length}/{membership.league.rosterSize})
+                        </Heading>
+                        {rosterGymnasts.length === 0 ? (
+                            <Text tone="tertiary">No gymnasts added yet.</Text>
+                        ) : (
+                            <div className="roster-table-wrap">
+                                <table className="roster-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>School</th>
+                                            <th>Year</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {rosterGymnasts.map((g) => (
+                                            <tr key={g.id}>
+                                                <td>
+                                                    {g.firstName} {g.lastName}
+                                                </td>
+                                                <td>{g.team.shortName}</td>
+                                                <td>{g.classYear ?? 'N/A'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
                 </Card>
 
@@ -184,6 +200,42 @@ export function ViewLeague() {
                     </Button>
                 </div>
             </div>
+
+            <Dialog
+                open={settingsOpen}
+                onClose={() => setSettingsOpen(false)}
+                title="Team Settings"
+                actions={
+                    <Button onClick={handleSaveTeam} disabled={!editTeamName.trim() || editColors.length !== 2 || savingTeam}>
+                        {savingTeam ? 'Saving' : justSaved ? 'Saved!' : 'Save Changes'}
+                    </Button>
+                }
+            >
+                <div className="wizard-panel">
+                    <TeamIdentityStep
+                        teamName={editTeamName}
+                        onTeamNameChange={(v) => {
+                            setEditTeamName(v);
+                            setEditError(null);
+                        }}
+                        colors={editColors}
+                        onColorsChange={setEditColors}
+                        leagueName={membership.league.name}
+                        teamNameError={editError}
+                        disabled={savingTeam}
+                    />
+                    <div className="danger-zone-inline">
+                        <Heading level={3}>Danger Zone</Heading>
+                        <Text tone="secondary">
+                            Leaving frees every gymnast on your roster back to the pool for other teams in{' '}
+                            {membership.league.name} to draft.
+                        </Text>
+                        <Button className="btn-danger" onClick={() => setLeaveConfirmOpen(true)}>
+                            Leave League
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
 
             <Dialog
                 open={leaveConfirmOpen}
