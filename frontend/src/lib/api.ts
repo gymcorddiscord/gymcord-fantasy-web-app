@@ -57,7 +57,7 @@ export interface Gymnast {
 }
 
 export type DraftStyle = 'previously_drafted' | 'autodraft';
-export type DraftOrder = 'snake' | 'rotating';
+export type DraftOrder = 'snake' | 'rotating' | 'fixed';
 export type TradeMode = 'no_trades' | 'waiver';
 export type WaiverPriority = 'reverse_snake' | 'reverse_rotating' | 'reverse_fixed';
 

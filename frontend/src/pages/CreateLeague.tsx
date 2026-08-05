@@ -38,6 +38,12 @@ const WAIVER_DAY_OPTIONS: { value: string; label: string }[] = [
     { value: 'sat_2359', label: 'Saturday 11:59 PM' }
 ];
 
+const DRAFT_ORDER_OPTIONS: { value: DraftOrder; label: string }[] = [
+    { value: 'snake', label: 'Snake (1,2,3,4,4,3,2,1)' },
+    { value: 'rotating', label: 'Rotating (1,2,3,4,2,3,4,1)' },
+    { value: 'fixed', label: 'Fixed (1,2,3,4,1,2,3,4)' }
+];
+
 const WAIVER_PRIORITY_OPTIONS: { value: WaiverPriority; label: string }[] = [
     { value: 'reverse_snake', label: 'Reverse draft order snake (4,3,2,1,1,2,3,4)' },
     { value: 'reverse_rotating', label: 'Reverse draft order rotating (1,2,3,4,2,3,4,1)' },
@@ -443,14 +449,14 @@ export function CreateLeague() {
                                         selected={draftStyle === 'previously_drafted'}
                                         icon={<ClipboardTextIcon size={22} />}
                                         title="Previously Drafted"
-                                        desc="Draft already took place live on Discord. Import the resulting rosters."
+                                        desc="Draft already took place live on Discord."
                                         onClick={() => setDraftStyle('previously_drafted')}
                                     />
                                     <ChoiceCard
                                         selected={draftStyle === 'autodraft'}
                                         icon={<SwapIcon size={22} />}
                                         title="Autodraft"
-                                        desc="Waiver wire selects gymnasts for you, in turn order, from your want list."
+                                        desc="Waiver wire selects gymnasts for you, in turn order, from your draft list on a specific time and date."
                                         onClick={() => setDraftStyle('autodraft')}
                                     />
                                 </div>
@@ -461,15 +467,24 @@ export function CreateLeague() {
                                             <Text size="caption" tone="secondary">
                                                 Autodraft Order
                                             </Text>
-                                            <SegmentedToggle
-                                                size="sm"
-                                                value={draftOrder}
-                                                onChange={setDraftOrder}
-                                                options={[
-                                                    { value: 'snake', label: 'Snake (1,2,3,4,4,3,2,1)' },
-                                                    { value: 'rotating', label: 'Rotating (1,2,3,4,2,3,4,1)' }
-                                                ]}
-                                            />
+                                            <div className="priority-list">
+                                                {DRAFT_ORDER_OPTIONS.map((o) => {
+                                                    const on = draftOrder === o.value;
+                                                    return (
+                                                        <button
+                                                            type="button"
+                                                            key={o.value}
+                                                            className="priority-opt"
+                                                            onClick={() => setDraftOrder(o.value)}
+                                                        >
+                                                            <span className={`priority-check${on ? ' priority-check--on' : ''}`}>
+                                                                {on ? <CheckIcon size={12} /> : null}
+                                                            </span>
+                                                            <Text size="caption">{o.label}</Text>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
                                         <DateTimePicker label="Autodraft Start Time" value={autodraftStart} onChange={setAutodraftStart} />
                                     </>
