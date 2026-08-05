@@ -291,7 +291,7 @@ export function CreateLeague() {
     }
 
     return (
-        <main className="page-narrow">
+        <main className="page-narrow page-narrow--wide">
             <Heading level={1}>Create a League</Heading>
             <Text tone="secondary">Hosting a league? Set up your league in a few steps to generate an invite link.</Text>
             <div style={{ marginTop: 24 }}>

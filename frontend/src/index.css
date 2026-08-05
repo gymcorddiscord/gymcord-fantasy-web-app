@@ -190,6 +190,11 @@ input, select, textarea {
     padding: 0 24px;
     box-sizing: border-box;
 }
+.page-narrow--wide {
+    /* Create League's 4-step indicator needs more breathing room per
+       label than the 420px width sized for single-column forms. */
+    max-width: 640px;
+}
 
 h1.page-title {
     font-size: 28px;
@@ -1474,59 +1479,66 @@ a.nav-tile:hover {
 }
 
 .step-indicator {
+    position: relative;
     display: flex;
-    align-items: center;
-    list-style: none;
-    margin: 0 0 20px;
-    padding: 0;
+    justify-content: space-between;
+    margin: 0 0 32px;
+}
+.step-indicator__track,
+.step-indicator__fill {
+    position: absolute;
+    top: 17px;
+    height: 3px;
+    border-radius: 2px;
+    z-index: 0;
+}
+.step-indicator__track {
+    background: var(--border-default);
+}
+.step-indicator__fill {
+    background: var(--brand-primary);
+    transition: width 0.2s ease;
 }
 .step-indicator__step {
+    position: relative;
+    z-index: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 8px;
-    flex: 1;
 }
-.step-indicator__step:last-child {
-    flex: 0 0 auto;
-}
-.step-indicator__dot {
-    display: inline-flex;
+.step-indicator__circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    flex-shrink: 0;
-    border-radius: var(--radius-pill);
-    font-size: 12px;
     font-weight: 700;
-    background: var(--bg-3);
+    font-size: 14px;
+    background: var(--bg-2);
+    border: 2px solid var(--border-default);
     color: var(--text-tertiary);
-    border: 1px solid var(--border-default);
 }
-.step-indicator__step--active .step-indicator__dot {
+.step-indicator__circle--done {
     background: var(--brand-primary);
-    color: var(--on-brand-fg);
     border-color: var(--brand-primary);
-}
-.step-indicator__step--done .step-indicator__dot {
-    background: var(--success);
     color: var(--on-brand-fg);
-    border-color: var(--success);
+}
+.step-indicator__circle--current {
+    background: var(--bg-2);
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
 }
 .step-indicator__label {
-    font-size: 13px;
-    color: var(--text-tertiary);
-    white-space: nowrap;
-}
-.step-indicator__step--active .step-indicator__label,
-.step-indicator__step--done .step-indicator__label {
+    font-size: 12.5px;
+    font-weight: 700;
     color: var(--text-primary);
+    text-align: center;
 }
-.step-indicator__line {
-    flex: 1;
-    height: 1px;
-    background: var(--border-default);
-    margin: 0 4px;
+.step-indicator__label--inactive {
+    font-weight: 500;
+    color: var(--text-tertiary);
 }
 
 .league-preview {
