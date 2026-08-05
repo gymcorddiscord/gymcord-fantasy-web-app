@@ -1,23 +1,38 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import {
+    BooksIcon,
     Button,
+    ButterflyIcon,
     Card,
     CheckIcon,
     ClipboardTextIcon,
     CopyIcon,
     DateTimePicker,
     Dropdown,
+    FlowerIcon,
+    GoatIcon,
     Heading,
     LockIcon,
     SegmentedToggle,
+    StarIcon,
     SwapIcon,
     Text,
-    TextField
+    TextField,
+    UnicornIcon
 } from 'gymcord-design-system';
-import { api, DraftOrder, DraftStyle, TradeMode, WaiverPriority } from '../lib/api';
+import { api, DraftOrder, DraftStyle, LeagueIcon, TradeMode, WaiverPriority } from '../lib/api';
 import { StepIndicator } from '../components/StepIndicator';
+
+const LEAGUE_ICON_OPTIONS: { value: LeagueIcon; label: string; icon: JSX.Element }[] = [
+    { value: 'goat', label: 'Goat', icon: <GoatIcon size={20} /> },
+    { value: 'star', label: 'Star', icon: <StarIcon size={20} /> },
+    { value: 'unicorn', label: 'Unicorn', icon: <UnicornIcon size={20} /> },
+    { value: 'flower', label: 'Flower', icon: <FlowerIcon size={20} /> },
+    { value: 'books', label: 'Books', icon: <BooksIcon size={20} /> },
+    { value: 'butterfly', label: 'Butterfly', icon: <ButterflyIcon size={20} /> }
+];
 
 const STEP_LABELS = ['League Details', 'League Rules', 'Draft Settings', 'Trade Settings'];
 
@@ -128,6 +143,25 @@ export function CreateLeague() {
     const [themeText, setThemeText] = useState('');
     const [hostPlaying, setHostPlaying] = useState<'Yes' | 'No'>('Yes');
     const [teamName, setTeamName] = useState('');
+    const [leagueIcon, setLeagueIcon] = useState<LeagueIcon>('star');
+    const [iconPickerOpen, setIconPickerOpen] = useState(false);
+    const iconPickerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!iconPickerOpen) return;
+        function onDocClick(e: MouseEvent) {
+            if (iconPickerRef.current && !iconPickerRef.current.contains(e.target as Node)) setIconPickerOpen(false);
+        }
+        function onKeyDown(e: KeyboardEvent) {
+            if (e.key === 'Escape') setIconPickerOpen(false);
+        }
+        document.addEventListener('mousedown', onDocClick);
+        document.addEventListener('keydown', onKeyDown);
+        return () => {
+            document.removeEventListener('mousedown', onDocClick);
+            document.removeEventListener('keydown', onKeyDown);
+        };
+    }, [iconPickerOpen]);
 
     const [rosterSize, setRosterSize] = useState(20);
     const [upCount, setUpCount] = useState(10);
@@ -199,7 +233,8 @@ export function CreateLeague() {
                 manualInjuryTrades: manualInjuryTrades === 'Yes',
                 seasonEndingOnly: seasonEndingOnly === 'Yes',
                 waiverProcessDay: isWaiver ? waiverProcessDay : null,
-                waiverPriority: isWaiver ? waiverPriority : null
+                waiverPriority: isWaiver ? waiverPriority : null,
+                leagueIcon
             });
             setCreatedLeague(result.league);
             setCreatedMembership(result.membership);
@@ -314,7 +349,48 @@ export function CreateLeague() {
 
                     {step === 0 && (
                         <>
-                            <TextField label="League Name" value={leagueName} onChange={setLeagueName} placeholder="e.g. Gymopoly" disabled={submitting} />
+                            <div className="league-name-row">
+                                <div className="league-name-row__field">
+                                    <TextField
+                                        label="League Name"
+                                        value={leagueName}
+                                        onChange={setLeagueName}
+                                        placeholder="e.g. Gymopoly"
+                                        disabled={submitting}
+                                    />
+                                </div>
+                                <div className="league-icon-picker" ref={iconPickerRef}>
+                                    <button
+                                        type="button"
+                                        className="league-icon-picker__trigger"
+                                        onClick={() => setIconPickerOpen((o) => !o)}
+                                        aria-expanded={iconPickerOpen}
+                                        aria-label="Choose league icon"
+                                        disabled={submitting}
+                                    >
+                                        {LEAGUE_ICON_OPTIONS.find((o) => o.value === leagueIcon)?.icon}
+                                    </button>
+                                    {iconPickerOpen && (
+                                        <div className="league-icon-picker__menu">
+                                            {LEAGUE_ICON_OPTIONS.map((o) => (
+                                                <button
+                                                    type="button"
+                                                    key={o.value}
+                                                    className={`league-icon-picker__option${o.value === leagueIcon ? ' league-icon-picker__option--selected' : ''}`}
+                                                    onClick={() => {
+                                                        setLeagueIcon(o.value);
+                                                        setIconPickerOpen(false);
+                                                    }}
+                                                    aria-label={o.label}
+                                                    title={o.label}
+                                                >
+                                                    {o.icon}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                             <div className="toggle-block">
                                 <Text size="caption" tone="secondary">
                                     Are you as the league host playing in the league?
@@ -342,7 +418,7 @@ export function CreateLeague() {
                                 label="Theme (optional)"
                                 value={themeText}
                                 onChange={setThemeText}
-                                placeholder="e.g. 80s movies"
+                                placeholder="e.g. Academic Baddies Only"
                                 disabled={submitting}
                             />
                         </>

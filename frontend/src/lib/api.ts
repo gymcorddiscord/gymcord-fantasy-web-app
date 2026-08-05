@@ -60,6 +60,7 @@ export type DraftStyle = 'previously_drafted' | 'autodraft';
 export type DraftOrder = 'snake' | 'rotating' | 'fixed';
 export type TradeMode = 'no_trades' | 'waiver';
 export type WaiverPriority = 'reverse_snake' | 'reverse_rotating' | 'reverse_fixed';
+export type LeagueIcon = 'goat' | 'star' | 'unicorn' | 'flower' | 'books' | 'butterfly';
 
 export interface League {
     id: number;
@@ -83,6 +84,7 @@ export interface League {
     tradeMode: TradeMode;
     waiverProcessDay: string | null;
     waiverPriority: WaiverPriority | null;
+    leagueIcon: LeagueIcon;
 }
 
 export interface LeagueMembership {
@@ -147,7 +149,8 @@ function toLeague(row: any): League {
         autodraftStartAt: row.autodraft_start_at,
         tradeMode: row.trade_mode,
         waiverProcessDay: row.waiver_process_day,
-        waiverPriority: row.waiver_priority
+        waiverPriority: row.waiver_priority,
+        leagueIcon: row.league_icon
     };
 }
 
@@ -368,6 +371,7 @@ export const api = {
         seasonEndingOnly: boolean;
         waiverProcessDay: string | null;
         waiverPriority: WaiverPriority | null;
+        leagueIcon: LeagueIcon;
     }): Promise<{ league: League; membership: LeagueMembership | null }> => {
         const {
             data: { user }
@@ -407,7 +411,8 @@ export const api = {
                     autodraft_start_at: params.draftStyle === 'autodraft' ? params.autodraftStartAt?.toISOString() : null,
                     trade_mode: params.tradeMode,
                     waiver_process_day: isWaiver ? params.waiverProcessDay : null,
-                    waiver_priority: isWaiver ? params.waiverPriority : null
+                    waiver_priority: isWaiver ? params.waiverPriority : null,
+                    league_icon: params.leagueIcon
                 })
                 .select()
                 .single();

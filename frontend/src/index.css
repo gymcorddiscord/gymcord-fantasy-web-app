@@ -246,7 +246,7 @@ label {
 input[type="text"]:not([class*="gds-"]),
 input[type="email"]:not([class*="gds-"]),
 input[type="password"]:not([class*="gds-"]),
-input[type="number"]:not([class*="gds-"]),
+input[type="number"]:not([class*="gds-"]):not(.slider-block__val-input),
 input[type="date"]:not([class*="gds-"]) {
     background: var(--surface-2);
     color: var(--text);
@@ -437,7 +437,7 @@ textarea:focus:not([class*="gds-"]) {
     box-shadow: 0 0 0 1px var(--accent);
 }
 
-input:focus:not([class*="gds-"]) {
+input:focus:not([class*="gds-"]):not(.slider-block__val-input) {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.18);
@@ -1954,6 +1954,10 @@ a.nav-tile:hover {
     align-items: center;
 }
 .slider-block__val-input {
+    /* content-box (overriding the app-wide border-box reset) so `width`
+       sizes just the digits — padding/border are added on top instead of
+       eating into that budget and squeezing the text out. */
+    box-sizing: content-box;
     width: 2ch;
     font-size: 14px;
     font-weight: 700;
@@ -1978,6 +1982,70 @@ a.nav-tile:hover {
 .slider-block input[type='range'] {
     width: 100%;
     accent-color: var(--brand-primary);
+}
+
+.league-name-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+}
+.league-name-row__field {
+    flex: 1;
+    min-width: 0;
+}
+.league-icon-picker {
+    position: relative;
+    flex-shrink: 0;
+}
+.league-icon-picker__trigger {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    color: var(--brand-primary);
+    cursor: pointer;
+}
+.league-icon-picker__trigger:hover {
+    background: var(--bg-3);
+}
+.league-icon-picker__menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 8px;
+    background: var(--bg-3);
+    border: 1px solid var(--border-default);
+    border-radius: 10px;
+    box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.4));
+}
+.league-icon-picker__option {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+.league-icon-picker__option:hover {
+    background: var(--bg-3);
+    color: var(--text-primary);
+}
+.league-icon-picker__option--selected {
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+    box-shadow: 0 0 0 1px var(--brand-primary);
 }
 
 .callout {
