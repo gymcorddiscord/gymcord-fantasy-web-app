@@ -24,7 +24,7 @@ const STEP_LABELS = ['League Details', 'League Rules', 'Draft Settings', 'Trade 
 const PRESETS: { label: string; rosterSize: number; upCount: number; countScore: number }[] = [
     { label: 'Standard', rosterSize: 20, upCount: 10, countScore: 5 },
     { label: 'Hardcore', rosterSize: 20, upCount: 5, countScore: 5 },
-    { label: 'Casual', rosterSize: 20, upCount: 20, countScore: 5 },
+    { label: 'Florida', rosterSize: 20, upCount: 20, countScore: 5 },
     { label: 'Deep', rosterSize: 30, upCount: 20, countScore: 5 }
 ];
 

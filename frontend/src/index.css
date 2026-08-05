@@ -1954,14 +1954,14 @@ a.nav-tile:hover {
     align-items: center;
 }
 .slider-block__val-input {
-    width: 36px;
+    width: 2ch;
     font-size: 14px;
     font-weight: 700;
     color: var(--brand-primary);
     background: var(--bg-2);
     border: 1px solid var(--border-default);
     border-radius: 6px;
-    padding: 4px 6px;
+    padding: 4px 5px;
     text-align: right;
     font-family: inherit;
     -moz-appearance: textfield;
