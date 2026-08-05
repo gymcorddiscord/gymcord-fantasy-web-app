@@ -60,7 +60,41 @@ export type DraftStyle = 'previously_drafted' | 'autodraft';
 export type DraftOrder = 'snake' | 'rotating' | 'fixed';
 export type TradeMode = 'no_trades' | 'waiver';
 export type WaiverPriority = 'reverse_snake' | 'reverse_rotating' | 'reverse_fixed';
-export type LeagueIcon = 'goat' | 'star' | 'unicorn' | 'flower' | 'books' | 'butterfly';
+export type LeagueIcon =
+    | 'books'
+    | 'butterfly'
+    | 'checkerboard'
+    | 'coins'
+    | 'confetti'
+    | 'crown'
+    | 'detective'
+    | 'dice-three'
+    | 'exam'
+    | 'fast-forward'
+    | 'fire'
+    | 'gift'
+    | 'globe'
+    | 'graduation-cap'
+    | 'hand-peace'
+    | 'magic-wand'
+    | 'medal'
+    | 'megaphone'
+    | 'microphone'
+    | 'moon-stars'
+    | 'music-notes'
+    | 'package'
+    | 'paint-brush'
+    | 'paw-print'
+    | 'phone'
+    | 'piano-keys'
+    | 'shooting-star'
+    | 'siren'
+    | 'sparkle'
+    | 'star'
+    | 'student'
+    | 'trophy'
+    | 'unicorn'
+    | 'yin-yang';
 
 export interface League {
     id: number;
