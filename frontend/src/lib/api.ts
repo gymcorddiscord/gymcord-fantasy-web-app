@@ -76,8 +76,19 @@ export interface League {
 export interface LeagueMembership {
     id: number;
     leagueId: number;
+    userId: string;
     teamName: string;
+    teamColor1: string | null;
+    teamColor2: string | null;
     league: League;
+}
+
+/** Thrown by `joinLeague` for the two spec'd unique-constraint conflicts, so pages can render the exact matching error copy without parsing Postgres error text themselves. */
+export class JoinLeagueError extends Error {
+    constructor(public reason: 'already_member' | 'team_name_taken', message: string) {
+        super(message);
+        this.name = 'JoinLeagueError';
+    }
 }
 
 export type EventFilter = 'vault' | 'bars' | 'beam' | 'floor' | 'aa';
@@ -120,6 +131,20 @@ function toLeague(row: any): League {
         otherTradeRules: row.other_trade_rules
     };
 }
+
+function toMembership(row: any): LeagueMembership {
+    return {
+        id: row.id,
+        leagueId: row.league_id,
+        userId: row.user_id,
+        teamName: row.team_name,
+        teamColor1: row.team_color_1,
+        teamColor2: row.team_color_2,
+        league: toLeague(row.leagues)
+    };
+}
+
+const MEMBERSHIP_SELECT = 'id, league_id, user_id, team_name, team_color_1, team_color_2, leagues (*)';
 
 // No 0/O/1/I — avoids ambiguous characters in a code someone has to read
 // off a screen or type out.
@@ -378,15 +403,64 @@ export const api = {
         return count ?? 0;
     },
 
-    joinLeague: async (leagueId: number, teamName: string): Promise<void> => {
+    joinLeague: async (
+        leagueId: number,
+        teamName: string,
+        teamColor1: string,
+        teamColor2: string
+    ): Promise<LeagueMembership> => {
         const {
             data: { user }
         } = await supabase.auth.getUser();
         if (!user) throw new Error('Not signed in.');
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('league_members')
-            .insert({ league_id: leagueId, user_id: user.id, team_name: teamName });
+            .insert({
+                league_id: leagueId,
+                user_id: user.id,
+                team_name: teamName,
+                team_color_1: teamColor1,
+                team_color_2: teamColor2
+            })
+            .select(MEMBERSHIP_SELECT)
+            .single();
+        if (error) {
+            if (error.code === '23505') {
+                if (error.message.includes('league_id_team_name')) {
+                    throw new JoinLeagueError('team_name_taken', 'That team name is already taken in this league.');
+                }
+                throw new JoinLeagueError('already_member', "You're already in this league!");
+            }
+            throw error;
+        }
+        return toMembership(data);
+    },
+
+    // Single-membership lookup for the current user in a league, independent
+    // of myLeagues() — used by the Join wizard's Step 1 "already a member?" check.
+    getMembership: async (leagueId: number): Promise<LeagueMembership | null> => {
+        const {
+            data: { user }
+        } = await supabase.auth.getUser();
+        if (!user) return null;
+        const { data, error } = await supabase
+            .from('league_members')
+            .select(MEMBERSHIP_SELECT)
+            .eq('league_id', leagueId)
+            .eq('user_id', user.id)
+            .maybeSingle();
         if (error) throw error;
+        return data ? toMembership(data) : null;
+    },
+
+    getMembershipById: async (membershipId: number): Promise<LeagueMembership | null> => {
+        const { data, error } = await supabase
+            .from('league_members')
+            .select(MEMBERSHIP_SELECT)
+            .eq('id', membershipId)
+            .maybeSingle();
+        if (error) throw error;
+        return data ? toMembership(data) : null;
     },
 
     myLeagues: async (): Promise<LeagueMembership[]> => {
@@ -397,15 +471,51 @@ export const api = {
 
         const { data, error } = await supabase
             .from('league_members')
-            .select('id, league_id, team_name, leagues (*)')
+            .select(MEMBERSHIP_SELECT)
             .eq('user_id', user.id);
         if (error) throw error;
 
+        return (data || []).map(toMembership);
+    },
+
+    // Every rostered gymnast in a league, with which team has them — used to
+    // disable/label Search & Add rows and to flag "Already Rostered" pastes.
+    rosterForLeague: async (
+        leagueId: number
+    ): Promise<{ gymnastId: number; leagueMemberId: number; teamName: string }[]> => {
+        const { data, error } = await supabase
+            .from('roster_gymnasts')
+            .select('gymnast_id, league_member_id, league_members ( team_name )')
+            .eq('league_id', leagueId);
+        if (error) throw error;
         return (data || []).map((row: any) => ({
-            id: row.id,
-            leagueId: row.league_id,
-            teamName: row.team_name,
-            league: toLeague(row.leagues)
+            gymnastId: row.gymnast_id,
+            leagueMemberId: row.league_member_id,
+            teamName: row.league_members?.team_name ?? ''
         }));
+    },
+
+    addToRoster: async (leagueId: number, leagueMemberId: number, gymnastId: number): Promise<void> => {
+        const { error } = await supabase
+            .from('roster_gymnasts')
+            .insert({ league_id: leagueId, league_member_id: leagueMemberId, gymnast_id: gymnastId });
+        if (error) throw error;
+    },
+
+    // Bulk add via upsert-with-ignoreDuplicates rather than a plain insert,
+    // so a gymnast sniped by another team between name-matching and
+    // confirming is silently skipped instead of failing the whole batch.
+    // Returns the gymnast ids that actually landed.
+    addManyToRoster: async (leagueId: number, leagueMemberId: number, gymnastIds: number[]): Promise<number[]> => {
+        if (gymnastIds.length === 0) return [];
+        const { data, error } = await supabase
+            .from('roster_gymnasts')
+            .upsert(
+                gymnastIds.map((gymnastId) => ({ league_id: leagueId, league_member_id: leagueMemberId, gymnast_id: gymnastId })),
+                { onConflict: 'league_id,gymnast_id', ignoreDuplicates: true }
+            )
+            .select('gymnast_id');
+        if (error) throw error;
+        return (data || []).map((row: any) => row.gymnast_id);
     }
 };

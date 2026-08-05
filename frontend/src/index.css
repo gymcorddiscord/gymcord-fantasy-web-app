@@ -173,9 +173,18 @@ input, select, textarea {
 /* ---------- Footer ---------- */
 
 .page-narrow {
+    /* Explicit width (not just max-width) so this resolves to a definite
+       size instead of shrink-to-fit — .app-shell's flex `margin: auto`
+       cross-axis centering exempts this element from stretch, and without
+       a definite width, nested grid/flex descendants (e.g. the Team
+       Identity swatch grid) can end up sized off leftover shrink-to-fit
+       math that shifts with sibling content, like the length of whatever
+       is typed into an adjacent field. */
+    width: 100%;
     max-width: 420px;
     margin: 56px auto;
     padding: 0 24px;
+    box-sizing: border-box;
 }
 
 h1.page-title {
@@ -219,11 +228,17 @@ label {
     font-weight: 500;
 }
 
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="date"] {
+/* :not([class*="gds-"]) on every rule below excludes the design system's own
+   inputs (TextField, SearchBar, DateTimePicker, …) — their `gds-*` classes
+   have lower specificity than these legacy tag/attribute selectors, so
+   without the exclusion a DS field gets styled twice: once by its own
+   component CSS, once by these leftover pre-DS rules (visible as a double
+   border/focus ring on the same field). */
+input[type="text"]:not([class*="gds-"]),
+input[type="email"]:not([class*="gds-"]),
+input[type="password"]:not([class*="gds-"]),
+input[type="number"]:not([class*="gds-"]),
+input[type="date"]:not([class*="gds-"]) {
     background: var(--surface-2);
     color: var(--text);
     border: 1px solid var(--border);
@@ -395,7 +410,7 @@ textarea {
     resize: vertical;
     min-height: 70px;
 }
-textarea:focus {
+textarea:focus:not([class*="gds-"]) {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.18);
@@ -452,7 +467,7 @@ textarea:focus {
     }
 }
 
-input:focus {
+input:focus:not([class*="gds-"]) {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.18);
@@ -1451,4 +1466,348 @@ a.nav-tile:hover {
 
 .credits-footnote {
     margin-top: 28px;
+}
+
+/* ---------- Join League wizard ---------- */
+
+/* DS Heading/Text/TextField/Card are all zero-margin/self-contained by
+   design — spacing is the page's job. Every step is ONE raised card
+   (the standard "has depth" Card variant used across the design system's
+   own component gallery — see docs' Card — raised) holding its
+   step-indicator/heading/fields/footer directly, evenly spaced. */
+.wizard-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+/* Flex's default cross-axis stretch is what SearchBar (no intrinsic width
+   of its own) relies on to span the panel — but it also blows up a Button
+   placed directly in the panel (e.g. "Match Names") to full width, since
+   Button has no such intrinsic width and normally sizes to its content. */
+.wizard-panel > button,
+.wizard-panel > .gds-button {
+    align-self: flex-start;
+}
+
+.wizard-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 8px; /* stacks on the panel's own 20px gap for extra room before actions */
+}
+.wizard-footer--stacked {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.league-card__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+@media (max-width: 560px) {
+    .league-card__actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+.step-indicator {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    margin: 0 0 20px;
+    padding: 0;
+}
+.step-indicator__step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+.step-indicator__step:last-child {
+    flex: 0 0 auto;
+}
+.step-indicator__dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--bg-3);
+    color: var(--text-tertiary);
+    border: 1px solid var(--border-default);
+}
+.step-indicator__step--active .step-indicator__dot {
+    background: var(--brand-primary);
+    color: var(--on-brand-fg);
+    border-color: var(--brand-primary);
+}
+.step-indicator__step--done .step-indicator__dot {
+    background: var(--success);
+    color: var(--on-brand-fg);
+    border-color: var(--success);
+}
+.step-indicator__label {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+}
+.step-indicator__step--active .step-indicator__label,
+.step-indicator__step--done .step-indicator__label {
+    color: var(--text-primary);
+}
+.step-indicator__line {
+    flex: 1;
+    height: 1px;
+    background: var(--border-default);
+    margin: 0 4px;
+}
+
+.league-preview {
+    display: grid;
+    gap: 14px;
+    margin: 0;
+}
+.league-preview dt {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-bottom: 2px;
+}
+.league-preview dd {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.welcome-team-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+/* ---------- Team Identity step (shared: Join + Create League) ---------- */
+
+.team-identity {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.team-identity__color-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.team-identity__swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+}
+@media (max-width: 480px) {
+    .team-identity__swatch-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+    }
+}
+.team-identity__swatch {
+    aspect-ratio: 1;
+    border-radius: var(--radius-md);
+    /* A visible border even when unselected — the palette's near-black
+       swatch is deliberately close to the card's own background color
+       (see create-league-flow-spec.md), so a transparent border would
+       make that swatch invisible instead of just "dark". */
+    border: 2px solid var(--border-default);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s ease, border-color 0.1s ease;
+}
+.team-identity__swatch:hover {
+    transform: translateY(-1px);
+}
+.team-identity__swatch--selected {
+    border-color: var(--text-primary);
+}
+.team-identity__preview {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--bg-2);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+/* Reserves height for 2 lines up front (14px body text × 1.5 line-height)
+   so the card doesn't visibly grow mid-keystroke the moment "Your team
+   '[name]' in [league]" wraps to a second line as the name gets longer. */
+.team-identity__preview .gds-text {
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+}
+
+.team-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.team-badge__swatch {
+    display: inline-block;
+    border-radius: var(--radius-pill);
+    flex-shrink: 0;
+    border: 1px solid var(--border-subtle);
+}
+.team-badge__name {
+    font-weight: 600;
+}
+
+/* ---------- Add Gymnasts / roster building ---------- */
+
+/* Page-level rhythm — same reasoning as .wizard-panel (DS components are
+   zero-margin by design): header block, banner, method toggle, the active
+   method's card, and the Done footer are otherwise raw siblings with
+   nothing forcing space between them. */
+.roster-page {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.roster-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.roster-header__team {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+.roster-progress {
+    padding-top: 8px;
+}
+.roster-banner {
+    background: var(--bg-2);
+    border: 1px solid var(--warning);
+    color: var(--warning);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+.gymnast-result-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.gymnast-result-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.gymnast-result-row:last-child {
+    border-bottom: none;
+}
+.gymnast-result-row__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.gymnast-result-row__tags {
+    display: flex;
+    gap: 4px;
+    margin-top: 2px;
+}
+.gymnast-result-row__stat {
+    text-align: center;
+    min-width: 48px;
+}
+.school-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: var(--radius-pill);
+    background: var(--bg-3);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.paste-result-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.paste-result-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px;
+    border-radius: var(--radius-md);
+    background: var(--bg-2);
+}
+.paste-result-row__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    border-radius: var(--radius-pill);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--on-brand-fg);
+}
+.paste-result-row__icon--matched {
+    background: var(--success);
+}
+.paste-result-row__icon--ambiguous {
+    background: var(--warning);
+}
+.paste-result-row__icon--unmatched,
+.paste-result-row__icon--rostered {
+    background: var(--danger);
+}
+.paste-result-row__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.paste-result-row__retry {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+.paste-result-row__retry .gds-textfield {
+    flex: 1;
+}
+.paste-result-row__overflow {
+    color: var(--warning);
+}
+.paste-result-row__remove {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+    flex-shrink: 0;
 }

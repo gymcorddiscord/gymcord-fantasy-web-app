@@ -35,7 +35,10 @@ export function Home() {
             ) : leagues.length === 0 ? (
                 <div className="card">
                     <div className="create-league-cta">
-                        <button type="button" className="gds-button gds-button--primary" disabled>
+                        <Link to="/join" className="gds-button gds-button--primary">
+                            Join a League
+                        </Link>
+                        <button type="button" className="gds-button gds-button--secondary" disabled>
                             Create a League
                         </button>
                         <span className="badge badge-muted">Coming soon</span>
@@ -51,16 +54,24 @@ export function Home() {
                                     {m.teamName} · {m.league.rosterSize}g/{m.league.upCount}u{m.league.countScore}c
                                 </p>
                             </div>
-                            <button
-                                type="button"
-                                className="gds-button gds-button--secondary"
-                                onClick={() => copyInviteLink(m.league.joinCode, m.id)}
-                            >
-                                {copiedId === m.id ? 'Copied!' : 'Copy invite link'}
-                            </button>
+                            <div className="league-card__actions">
+                                <Link to={`/leagues/${m.id}/roster`} className="gds-button gds-button--primary">
+                                    Build Roster
+                                </Link>
+                                <button
+                                    type="button"
+                                    className="gds-button gds-button--secondary"
+                                    onClick={() => copyInviteLink(m.league.joinCode, m.id)}
+                                >
+                                    {copiedId === m.id ? 'Copied!' : 'Copy invite link'}
+                                </button>
+                            </div>
                         </div>
                     ))}
                     <div className="create-league-cta">
+                        <Link to="/join" className="gds-button gds-button--secondary">
+                            + Join another league
+                        </Link>
                         <button type="button" className="gds-button gds-button--secondary" disabled>
                             + Create another league
                         </button>

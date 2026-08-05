@@ -10,6 +10,7 @@ import { Home } from './pages/Home';
 import { Gymnasts } from './pages/Gymnasts';
 import { CreateLeague } from './pages/CreateLeague';
 import { JoinLeague } from './pages/JoinLeague';
+import { AddGymnasts } from './pages/AddGymnasts';
 import { Credits } from './pages/Credits';
 import { AdminScoresImport } from './pages/AdminScoresImport';
 import { takePendingJoinCode } from './lib/pendingJoin';
@@ -122,7 +123,16 @@ function Shell() {
                             </RequireAdmin>
                         }
                     />
+                    <Route path="/join" element={<JoinLeague />} />
                     <Route path="/join/:code" element={<JoinLeague />} />
+                    <Route
+                        path="/leagues/:membershipId/roster"
+                        element={
+                            <RequireAuth>
+                                <AddGymnasts />
+                            </RequireAuth>
+                        }
+                    />
                     <Route path="/credits" element={<Credits />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

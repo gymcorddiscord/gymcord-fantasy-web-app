@@ -81,6 +81,14 @@ export function AppHeader() {
         );
     }
 
+    // Join League wizard + Add Gymnasts (roster building) are both part of
+    // the same pre-draft flow — "Draft" stays the active nav tab throughout,
+    // even though neither page routes through the (not-yet-built) /draft
+    // page itself.
+    if (location.pathname.startsWith('/join') || location.pathname.includes('/roster')) {
+        return <DSAppHeader logoHref="#/home" phase="preseason" activeTab="draft" theme={theme} onThemeToggle={setTheme} onLogOut={onLogout} />;
+    }
+
     if (location.pathname.startsWith('/credits')) {
         return <DSAppHeader logoHref="#/home" phase="standard" theme={theme} onThemeToggle={setTheme} onLogOut={onLogout} />;
     }
