@@ -87,6 +87,10 @@ a {
     text-decoration: none;
 }
 a:hover { text-decoration: underline; }
+/* A <Link> reusing gds-button classes (Join a League, Build Roster, …) is
+   still an <a> underneath, so the rule above would otherwise underline it
+   on hover — DS buttons never underline regardless of the underlying tag. */
+.gds-button:hover { text-decoration: none; }
 
 button {
     font: inherit;
@@ -1691,6 +1695,29 @@ a.nav-tile:hover {
     gap: 8px;
     margin-top: 4px;
 }
+.team-settings-link {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+}
+.team-settings-link:hover {
+    color: var(--brand-primary);
+}
+.view-league-cta {
+    width: 100%;
+}
+.btn-danger.gds-button {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: var(--on-brand-fg);
+}
+.btn-danger.gds-button:hover {
+    filter: brightness(0.9);
+}
 .roster-progress {
     padding-top: 8px;
 }
@@ -1702,6 +1729,11 @@ a.nav-tile:hover {
     padding: 10px 14px;
     font-size: 14px;
     margin-bottom: 16px;
+}
+
+.roster-done-row {
+    display: flex;
+    gap: 12px;
 }
 
 .gymnast-result-list {

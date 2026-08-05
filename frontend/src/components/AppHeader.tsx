@@ -1,17 +1,21 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     AppHeader as DSAppHeader,
     Logo,
     LoggedOutHeader,
+    LeagueSwitcher,
     SegmentedToggle,
     ThemeToggle,
     UserCircleIcon,
     PeopleIcon,
+    type LeagueOption,
     type SegmentedToggleOption
 } from 'gymcord-design-system';
 import { useAuth } from '../lib/AuthContext';
 import { applyTheme, getInitialTheme, Theme } from '../lib/theme';
+import { api, LeagueMembership } from '../lib/api';
+import { TeamBadge } from './TeamBadge';
 
 type NavTab = 'gymnasts';
 
@@ -30,8 +34,36 @@ export function AppHeader() {
     const [theme, setTheme] = useState<Theme>(getInitialTheme());
     const [accountMenuOpen, setAccountMenuOpen] = useState(false);
     const accountRef = useRef<HTMLDivElement>(null);
+    const [myLeagues, setMyLeagues] = useState<LeagueMembership[]>([]);
 
     useEffect(() => { applyTheme(theme); }, [theme]);
+
+    // Fetched once per session (not per navigation) — only rendered into the
+    // header on the Home page, but cheap enough to keep warm regardless.
+    useEffect(() => {
+        if (!user) {
+            setMyLeagues([]);
+            return;
+        }
+        let cancelled = false;
+        api.myLeagues().then((leagues) => {
+            if (!cancelled) setMyLeagues(leagues);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [user?.id]);
+
+    const leagueOptions: LeagueOption[] = useMemo(
+        () =>
+            myLeagues.map((m) => ({
+                id: String(m.id),
+                teamName: m.teamName,
+                leagueName: m.league.name,
+                icon: <TeamBadge color1={m.teamColor1} color2={m.teamColor2} size="sm" />
+            })),
+        [myLeagues]
+    );
 
     useEffect(() => {
         if (!accountMenuOpen) return;
@@ -81,11 +113,13 @@ export function AppHeader() {
         );
     }
 
-    // Join League wizard + Add Gymnasts (roster building) are both part of
-    // the same pre-draft flow — "Draft" stays the active nav tab throughout,
-    // even though neither page routes through the (not-yet-built) /draft
-    // page itself.
-    if (location.pathname.startsWith('/join') || location.pathname.includes('/roster')) {
+    // Join League wizard + View League + Add Gymnasts (roster building) are
+    // all part of the same pre-draft flow — "Draft" stays the active nav tab
+    // throughout, even though none of them route through the (not-yet-built)
+    // /draft page itself. /leagues/:id and /leagues/:id/roster both match
+    // here; /leagues/new (Create League, currently disabled) does not.
+    const isLeagueRoute = /^\/leagues\/\d+/.test(location.pathname);
+    if (location.pathname.startsWith('/join') || isLeagueRoute) {
         return <DSAppHeader logoHref="#/home" phase="preseason" activeTab="draft" theme={theme} onThemeToggle={setTheme} onLogOut={onLogout} />;
     }
 
@@ -101,6 +135,13 @@ export function AppHeader() {
                 <Link to="/home" className="gds-app-header__logo-link">
                     <Logo />
                 </Link>
+                {location.pathname.startsWith('/home') && leagueOptions.length > 0 && (
+                    <LeagueSwitcher
+                        leagues={leagueOptions}
+                        activeLeagueId={leagueOptions[0].id}
+                        onChange={(id) => navigate(`/leagues/${id}`)}
+                    />
+                )}
                 <div className="gds-app-header__tabs app-header-tabs--pushed">
                     <SegmentedToggle size="lg" value={activeTab} onChange={(tab) => navigate(TAB_PATHS[tab])} options={NAV_TABS} />
                 </div>

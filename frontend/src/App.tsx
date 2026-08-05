@@ -1,4 +1,5 @@
 import { HashRouter, Route, Routes, Navigate } from 'react-router-dom';
+import { LoadingIndicator } from 'gymcord-design-system';
 import { AuthProvider, useAuth } from './lib/AuthContext';
 import { AppHeader } from './components/AppHeader';
 import { FeedbackButton } from './components/FeedbackButton';
@@ -10,6 +11,7 @@ import { Home } from './pages/Home';
 import { Gymnasts } from './pages/Gymnasts';
 import { CreateLeague } from './pages/CreateLeague';
 import { JoinLeague } from './pages/JoinLeague';
+import { ViewLeague } from './pages/ViewLeague';
 import { AddGymnasts } from './pages/AddGymnasts';
 import { Credits } from './pages/Credits';
 import { AdminScoresImport } from './pages/AdminScoresImport';
@@ -27,10 +29,18 @@ import { ReactElement } from 'react';
 // VITE_DEV_BYPASS_AUTH=true in frontend/.env.local (gitignored) to enable.
 const DEV_BYPASS_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
 
+function PageLoader() {
+    return (
+        <div className="full-page-loader">
+            <LoadingIndicator />
+        </div>
+    );
+}
+
 function RequireAuth({ children }: { children: ReactElement }) {
     const { user, loading } = useAuth();
     if (DEV_BYPASS_AUTH) return children;
-    if (loading) return <div className="full-page-loader">Loading…</div>;
+    if (loading) return <PageLoader />;
     if (!user) return <Navigate to="/login" replace />;
     return children;
 }
@@ -38,7 +48,7 @@ function RequireAuth({ children }: { children: ReactElement }) {
 function RequireAdmin({ children }: { children: ReactElement }) {
     const { user, loading } = useAuth();
     if (DEV_BYPASS_AUTH) return children;
-    if (loading) return <div className="full-page-loader">Loading…</div>;
+    if (loading) return <PageLoader />;
     if (!user) return <Navigate to="/login" replace />;
     if (user.role !== 'admin') return <Navigate to="/home" replace />;
     return children;
@@ -49,7 +59,7 @@ function RequireAdmin({ children }: { children: ReactElement }) {
 // lands here and a session is picked up, send signed-in users on to /home.
 function RedirectIfAuthed({ children }: { children: ReactElement }) {
     const { user, loading } = useAuth();
-    if (loading) return <div className="full-page-loader">Loading…</div>;
+    if (loading) return <PageLoader />;
     if (user) {
         const pendingCode = takePendingJoinCode();
         if (pendingCode) return <Navigate to={`/join/${pendingCode}`} replace />;
@@ -64,7 +74,7 @@ function Shell() {
         <div className="app-shell">
             <AppHeader />
             {loading ? (
-                <div className="full-page-loader">Loading…</div>
+                <PageLoader />
             ) : (
                 <Routes>
                     <Route
@@ -125,6 +135,14 @@ function Shell() {
                     />
                     <Route path="/join" element={<JoinLeague />} />
                     <Route path="/join/:code" element={<JoinLeague />} />
+                    <Route
+                        path="/leagues/:membershipId"
+                        element={
+                            <RequireAuth>
+                                <ViewLeague />
+                            </RequireAuth>
+                        }
+                    />
                     <Route
                         path="/leagues/:membershipId/roster"
                         element={

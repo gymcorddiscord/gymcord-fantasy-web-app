@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { LoadingIndicator, PlusIcon } from 'gymcord-design-system';
 import { useAuth } from '../lib/AuthContext';
 import { api, LeagueMembership } from '../lib/api';
 
@@ -31,7 +32,9 @@ export function Home() {
             </p>
 
             {leagues === null ? (
-                <div className="full-page-loader">Loading…</div>
+                <div className="full-page-loader">
+                    <LoadingIndicator />
+                </div>
             ) : leagues.length === 0 ? (
                 <div className="card">
                     <div className="create-league-cta">
@@ -55,8 +58,8 @@ export function Home() {
                                 </p>
                             </div>
                             <div className="league-card__actions">
-                                <Link to={`/leagues/${m.id}/roster`} className="gds-button gds-button--primary">
-                                    Build Roster
+                                <Link to={`/leagues/${m.id}`} className="gds-button gds-button--primary">
+                                    View League
                                 </Link>
                                 <button
                                     type="button"
@@ -70,10 +73,16 @@ export function Home() {
                     ))}
                     <div className="create-league-cta">
                         <Link to="/join" className="gds-button gds-button--secondary">
-                            + Join another league
+                            <span className="gds-button__icon">
+                                <PlusIcon size={16} />
+                            </span>
+                            Join another league
                         </Link>
                         <button type="button" className="gds-button gds-button--secondary" disabled>
-                            + Create another league
+                            <span className="gds-button__icon">
+                                <PlusIcon size={16} />
+                            </span>
+                            Create another league
                         </button>
                         <span className="badge badge-muted">Coming soon</span>
                     </div>

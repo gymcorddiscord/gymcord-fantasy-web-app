@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
     Button,
     Card,
+    Dialog,
     Heading,
+    LoadingIndicator,
     Text,
     TextField,
     SearchBar,
@@ -46,8 +48,8 @@ function initials(g: Gymnast): string {
 }
 
 const ADD_METHOD_OPTIONS: SegmentedToggleOption<Method>[] = [
-    { value: 'search', label: 'Search & Add' },
-    { value: 'paste', label: 'Paste from Clipboard' }
+    { value: 'paste', label: 'Paste from Clipboard' },
+    { value: 'search', label: 'Search & Add' }
 ];
 
 export function AddGymnasts() {
@@ -61,6 +63,7 @@ export function AddGymnasts() {
 
     const [allGymnasts, setAllGymnasts] = useState<Gymnast[]>([]);
     const [roster, setRoster] = useState<Map<number, RosterEntry>>(new Map());
+    const [rosterViewOpen, setRosterViewOpen] = useState(false);
 
     // Method A: Search & Add
     const [searchQuery, setSearchQuery] = useState('');
@@ -124,6 +127,12 @@ export function AddGymnasts() {
     }, [roster, membership]);
     const remainingSlots = Math.max(0, rosterSize - rosterCount);
     const full = remainingSlots === 0;
+    const myRosterGymnasts = useMemo(() => {
+        if (!membership) return [];
+        const ids = new Set<number>();
+        for (const [gymnastId, entry] of roster) if (entry.leagueMemberId === membership.id) ids.add(gymnastId);
+        return allGymnasts.filter((g) => ids.has(g.id));
+    }, [roster, allGymnasts, membership]);
 
     async function handleAdd(gymnast: Gymnast) {
         if (!membership || full || roster.has(gymnast.id)) return;
@@ -225,7 +234,13 @@ export function AddGymnasts() {
         }
     }
 
-    if (loading || !membership) return <div className="full-page-loader">Loading</div>;
+    if (loading || !membership) {
+        return (
+            <div className="full-page-loader">
+                <LoadingIndicator />
+            </div>
+        );
+    }
 
     return (
         <main className="page">
@@ -236,6 +251,9 @@ export function AddGymnasts() {
                     <div className="roster-header__team">
                         <TeamBadge color1={membership.teamColor1} color2={membership.teamColor2} teamName={membership.teamName} size="sm" />
                         <Text tone="secondary">in {membership.league.name}</Text>
+                        <Link to={`/leagues/${membership.id}`} className="team-settings-link">
+                            View League
+                        </Link>
                     </div>
                 </div>
                 <div className="roster-progress">
@@ -411,12 +429,53 @@ export function AddGymnasts() {
                 </Card>
             )}
 
-            <div className="wizard-footer">
+            <div className="roster-done-row">
+                <Button variant="secondary" onClick={() => setRosterViewOpen(true)}>
+                    View Roster
+                </Button>
                 <Button variant="secondary" onClick={() => navigate('/home')}>
                     Done
                 </Button>
             </div>
             </div>
+
+            <Dialog
+                open={rosterViewOpen}
+                onClose={() => setRosterViewOpen(false)}
+                title={`${membership.teamName}'s Roster`}
+                actions={<Button onClick={() => setRosterViewOpen(false)}>Close</Button>}
+            >
+                {myRosterGymnasts.length === 0 ? (
+                    <Text tone="tertiary">No gymnasts added yet.</Text>
+                ) : (
+                    <div className="gymnast-result-list">
+                        {myRosterGymnasts.map((g) => (
+                            <div className="gymnast-result-row" key={g.id}>
+                                <span className="school-avatar">{initials(g)}</span>
+                                <div className="gymnast-result-row__info">
+                                    <Text>
+                                        {g.firstName} {g.lastName}
+                                    </Text>
+                                    <Text size="caption" tone="secondary">
+                                        {g.team.shortName} {g.classYear ? `· ${g.classYear}` : ''}
+                                    </Text>
+                                    <div className="gymnast-result-row__tags">
+                                        {eventsToDisciplines(g).map((d) => (
+                                            <DisciplineTag key={d} discipline={d} />
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="gymnast-result-row__stat">
+                                    <Text size="caption" tone="tertiary">
+                                        Avg
+                                    </Text>
+                                    <Text>{g.seasonAverage !== null ? g.seasonAverage.toFixed(3) : 'N/A'}</Text>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </Dialog>
         </main>
     );
 }

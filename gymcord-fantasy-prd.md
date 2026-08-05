@@ -398,6 +398,8 @@ League Standings & Rankings:
 - Trust that scoring is accurate and transparent  
 - Review actual vs max score potential for past weeks  
 - Set lineups for multiple future weeks at once  
+- Personalize my team with a name and colors when I create or join it  
+- Quickly build my roster by pasting a list of gymnast names instead of searching one by one  
 5. Core User Flows  
 - User logs in → sees Homepage with rankings & insights  
 - User clicks a league → views standings and weekly results  
@@ -2547,6 +2549,19 @@ Method 1: Manual Selection (Default)
 - First-come-first-served: once a gymnast is rostered by any team, that gymnast is unavailable to all other teams in the league  
 - Each gymnast can only be on one team per league (exclusive pool — no shared/overlapping rosters)
 
+**Method 1a: Search & Add (single gymnast)** — the existing Gymnast Browser search bar (Section 9.0.4) doubles as a quick add path: search by name, then add directly from the results row, without opening the full filtered browser.
+
+**Method 1b: Paste from Clipboard (new, bulk add)**
+
+- User pastes a list of gymnast names (from clipboard) instead of browsing/searching one at a time  
+- System fuzzy-matches each pasted name against the gymnast database (tolerates typos/close spellings) rather than requiring an exact match  
+- Matched names are shown for user confirmation before being added to the roster  
+- **Ambiguous match:** if a pasted name matches multiple gymnasts (e.g. same name on different NCAA teams), show all candidates with school and let the user pick which one they meant  
+- **Error state — no match:** if a pasted name doesn't resolve to any gymnast in the database, flag it as unmatched so the user can correct or drop it  
+- **Error state — already rostered:** if a pasted name matches a gymnast already on another team in this league (applies once the league has started drafting — see first-come-first-served rule above), show an error for that name rather than silently skipping it  
+- Standard roster validations still apply: roster not full, not already on this team's own roster (no duplicates)  
+- Open item: exact paste format supported (one name per line vs. comma-separated) and whether partial success is allowed (add all matched names while unmatched/ambiguous/conflicting ones are called out for follow-up) or the whole paste must resolve cleanly before anything is added
+
 Method 2: Commissioner Upload (CSV)
 
 - Commissioner pre-assigns rosters  
@@ -2651,6 +2666,17 @@ Lineup Lock:
   - Traded away  
   - League ends  
 - Must set new lineup each week (unless using "populate all" feature)  
+
+9.0.7 View League Page and Its Phase-Specific Children
+
+"View League" is the player's hub for a single league they belong to: league summary (name, team count, scoring format, trade rules, current week), their own team settings (rename, recolor, leave league — see 12.4 Step 3 note on reusing Team Identity), and a primary CTA into whichever action matches the league's current phase. It is a distinct page from that phase-specific action, not a single screen that silently swaps content:
+
+- **Preseason:** the CTA is "Build Your Roster," routing to the roster-building screen — Search & Add / Paste from Clipboard (9.0.3 Methods 1a/1b), roster progress toward UP-derived roster size. No weekly lineup concept yet since there are no weeks to set lineups for.  
+- **In-season:** the CTA switches to "Set Lineup," routing to the Weekly Lineup Management interface (9.0.5). Roster management doesn't disappear (see 3.x for late-add rules) but stops being the default action once there's a lineup to set instead.  
+- Team settings (rename/recolor/leave league) live on View League itself, not on either phase-specific child page, since they're relevant regardless of phase.  
+- Leaving a league deletes the player's team and, per the exclusive-pool rule (9.0.3), immediately frees every gymnast on that roster back to the pool for any other team in the league to draft. This is a hard delete with no undo — the UI must confirm before executing it. Open item: what happens if the league's commissioner leaves their own league (no successor/transfer flow exists yet); low priority while league creation remains unshipped, since no commissioner accounts exist yet to hit it.  
+- The `AppHeader`'s own phase switch already reflects preseason vs. in-season at the nav level (Draft/Gymnasts tabs vs. Lineups/Leaderboard/Trades/Analytics) — View League's CTA should follow that same phase signal rather than requiring the player to figure out which action applies.
+
 9.1 Trade System Overview
 
 Commissioners choose ONE of three trade systems during league creation:
@@ -3626,7 +3652,10 @@ Step 3: Name Your Team
 - Input field for team name (required, max 30 characters)  
 - Character counter  
 - Validation: No duplicate names in league  
+- **Team Colors (required, new):** select two colors from a curated palette (not freeform hex) to personalize the team — used for team badges/branding across the app  
 - Preview: "Your team '\[Team Name\]' in \[League Name\]"
+
+**Note:** this same team name + color step should be reused wherever a user gets a team in a league, including the commissioner's own team during league creation (Section 12.3) — not just the join flow. Open item: define the curated color palette (count, specific values) and whether the two selected colors must be distinct from each other.
 
 Actions:
 

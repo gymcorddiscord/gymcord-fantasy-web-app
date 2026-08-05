@@ -463,6 +463,35 @@ export const api = {
         return data ? toMembership(data) : null;
     },
 
+    // Rename/recolor a team the user already belongs to — same unique-name
+    // conflict as joinLeague, so it reuses JoinLeagueError for the error copy.
+    updateTeam: async (
+        membershipId: number,
+        params: { teamName: string; teamColor1: string; teamColor2: string }
+    ): Promise<LeagueMembership> => {
+        const { data, error } = await supabase
+            .from('league_members')
+            .update({ team_name: params.teamName, team_color_1: params.teamColor1, team_color_2: params.teamColor2 })
+            .eq('id', membershipId)
+            .select(MEMBERSHIP_SELECT)
+            .single();
+        if (error) {
+            if (error.code === '23505' && error.message.includes('league_id_team_name')) {
+                throw new JoinLeagueError('team_name_taken', 'That team name is already taken in this league.');
+            }
+            throw error;
+        }
+        return toMembership(data);
+    },
+
+    // Deletes the membership; roster_gymnasts rows for this team cascade-delete
+    // with it (FK ON DELETE CASCADE), freeing every gymnast on the team back
+    // to the league's exclusive pool for any other team to draft.
+    leaveLeague: async (membershipId: number): Promise<void> => {
+        const { error } = await supabase.from('league_members').delete().eq('id', membershipId);
+        if (error) throw error;
+    },
+
     myLeagues: async (): Promise<LeagueMembership[]> => {
         const {
             data: { user }

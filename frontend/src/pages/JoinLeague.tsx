@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Card, Heading, Text, TextField } from 'gymcord-design-system';
+import { Button, Card, Heading, LoadingIndicator, Text, TextField } from 'gymcord-design-system';
 import { api, League, LeagueMembership, JoinLeagueError } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { setPendingJoinCode } from '../lib/pendingJoin';
@@ -256,5 +256,9 @@ export function JoinLeague() {
         );
     }
 
-    return <div className="full-page-loader">Loading</div>;
+    return (
+        <div className="full-page-loader">
+            <LoadingIndicator />
+        </div>
+    );
 }
