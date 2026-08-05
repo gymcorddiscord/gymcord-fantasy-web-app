@@ -56,6 +56,11 @@ export interface Gymnast {
     team: NcaaTeam;
 }
 
+export type DraftStyle = 'previously_drafted' | 'autodraft';
+export type DraftOrder = 'snake' | 'rotating';
+export type TradeMode = 'no_trades' | 'waiver';
+export type WaiverPriority = 'reverse_snake' | 'reverse_rotating' | 'reverse_fixed';
+
 export interface League {
     id: number;
     name: string;
@@ -71,6 +76,13 @@ export interface League {
     seasonEndingOnly: boolean;
     regularSeasonTrades: boolean;
     otherTradeRules: string | null;
+    themeText: string | null;
+    draftStyle: DraftStyle;
+    draftOrder: DraftOrder | null;
+    autodraftStartAt: string | null;
+    tradeMode: TradeMode;
+    waiverProcessDay: string | null;
+    waiverPriority: WaiverPriority | null;
 }
 
 export interface LeagueMembership {
@@ -128,7 +140,14 @@ function toLeague(row: any): League {
         manualInjuryTrades: row.manual_injury_trades,
         seasonEndingOnly: row.season_ending_only,
         regularSeasonTrades: row.regular_season_trades,
-        otherTradeRules: row.other_trade_rules
+        otherTradeRules: row.other_trade_rules,
+        themeText: row.theme_text,
+        draftStyle: row.draft_style,
+        draftOrder: row.draft_order,
+        autodraftStartAt: row.autodraft_start_at,
+        tradeMode: row.trade_mode,
+        waiverProcessDay: row.waiver_process_day,
+        waiverPriority: row.waiver_priority
     };
 }
 
@@ -333,22 +352,33 @@ export const api = {
 
     createLeague: async (params: {
         name: string;
+        themeText: string;
+        hostPlaying: boolean;
         teamName: string;
+        teamColor1: string;
+        teamColor2: string;
         rosterSize: number;
         upCount: number;
         countScore: number;
-        injuryTradesAllowed: boolean;
-        injuryTradeTiming: 'as_it_happens' | 'draft';
-        lateRosterAdds: boolean;
+        draftStyle: DraftStyle;
+        draftOrder: DraftOrder | null;
+        autodraftStartAt: Date | null;
+        tradeMode: TradeMode;
         manualInjuryTrades: boolean;
         seasonEndingOnly: boolean;
-        regularSeasonTrades: boolean;
-        otherTradeRules: string;
-    }): Promise<League> => {
+        waiverProcessDay: string | null;
+        waiverPriority: WaiverPriority | null;
+    }): Promise<{ league: League; membership: LeagueMembership | null }> => {
         const {
             data: { user }
         } = await supabase.auth.getUser();
         if (!user) throw new Error('Not signed in.');
+
+        // Trade-related fields not collected by this wizard (preseason
+        // injury trades, late roster adds) get sensible off defaults —
+        // `tradeRulesSummary()` (Join/View League) already treats them as
+        // optional extras layered on top of the trade mode.
+        const isWaiver = params.tradeMode === 'waiver';
 
         // Retry a couple of times in the vanishingly unlikely case the
         // random join code collides with an existing one.
@@ -364,13 +394,20 @@ export const api = {
                     roster_size: params.rosterSize,
                     up_count: params.upCount,
                     count_score: params.countScore,
-                    injury_trades_allowed: params.injuryTradesAllowed,
-                    injury_trade_timing: params.injuryTradeTiming,
-                    late_roster_adds: params.lateRosterAdds,
-                    manual_injury_trades: params.manualInjuryTrades,
-                    season_ending_only: params.seasonEndingOnly,
-                    regular_season_trades: params.regularSeasonTrades,
-                    other_trade_rules: params.otherTradeRules.trim() || null
+                    injury_trades_allowed: false,
+                    injury_trade_timing: 'as_it_happens',
+                    late_roster_adds: false,
+                    manual_injury_trades: isWaiver && params.manualInjuryTrades,
+                    season_ending_only: isWaiver && params.manualInjuryTrades && params.seasonEndingOnly,
+                    regular_season_trades: isWaiver,
+                    other_trade_rules: null,
+                    theme_text: params.themeText.trim() || null,
+                    draft_style: params.draftStyle,
+                    draft_order: params.draftStyle === 'autodraft' ? params.draftOrder : null,
+                    autodraft_start_at: params.draftStyle === 'autodraft' ? params.autodraftStartAt?.toISOString() : null,
+                    trade_mode: params.tradeMode,
+                    waiver_process_day: isWaiver ? params.waiverProcessDay : null,
+                    waiver_priority: isWaiver ? params.waiverPriority : null
                 })
                 .select()
                 .single();
@@ -383,12 +420,25 @@ export const api = {
         }
         if (!row) throw lastError;
 
-        const { error: memberError } = await supabase
+        const league = toLeague(row);
+        if (!params.hostPlaying) {
+            return { league, membership: null };
+        }
+
+        const { data: memberRow, error: memberError } = await supabase
             .from('league_members')
-            .insert({ league_id: row.id, user_id: user.id, team_name: params.teamName });
+            .insert({
+                league_id: row.id,
+                user_id: user.id,
+                team_name: params.teamName,
+                team_color_1: params.teamColor1,
+                team_color_2: params.teamColor2
+            })
+            .select(MEMBERSHIP_SELECT)
+            .single();
         if (memberError) throw memberError;
 
-        return toLeague(row);
+        return { league, membership: toMembership(memberRow) };
     },
 
     getLeagueByCode: async (code: string): Promise<League | null> => {

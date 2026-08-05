@@ -33,10 +33,9 @@ export function Home() {
                         <Link to="/join" className="gds-button gds-button--primary">
                             Join a League
                         </Link>
-                        <button type="button" className="gds-button gds-button--secondary" disabled>
+                        <Link to="/leagues/new" className="gds-button gds-button--secondary">
                             Create a League
-                        </button>
-                        <span className="badge badge-muted">Coming soon</span>
+                        </Link>
                     </div>
                 </div>
             ) : (
@@ -47,13 +46,12 @@ export function Home() {
                         </span>
                         Join another league
                     </Link>
-                    <button type="button" className="gds-button gds-button--secondary" disabled>
+                    <Link to="/leagues/new" className="gds-button gds-button--secondary">
                         <span className="gds-button__icon">
                             <PlusIcon size={16} />
                         </span>
                         Create another league
-                    </button>
-                    <span className="badge badge-muted">Coming soon</span>
+                    </Link>
                 </div>
             )}
 

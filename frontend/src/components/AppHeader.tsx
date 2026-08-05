@@ -9,6 +9,7 @@ import {
     ThemeToggle,
     UserCircleIcon,
     PeopleIcon,
+    type AppHeaderTab,
     type LeagueOption,
     type SegmentedToggleOption
 } from 'gymcord-design-system';
@@ -99,13 +100,21 @@ export function AppHeader() {
         );
     }
 
+    // Draft <-> Gymnasts tabs stay switchable everywhere below, including
+    // mid-flow (Join/Create League wizards, View League, Add Gymnasts) —
+    // "Draft" routes to the home dashboard since there's no dedicated
+    // /draft page yet.
+    function onPreseasonTabChange(tab: AppHeaderTab) {
+        navigate(tab === 'gymnasts' ? '/gymnasts' : '/home');
+    }
+
     if (location.pathname.startsWith('/gymnasts')) {
         return (
             <DSAppHeader
                 logoHref="#/home"
                 phase="preseason"
                 activeTab="gymnasts"
-                onTabChange={(tab) => { if (tab === 'gymnasts') navigate('/gymnasts'); }}
+                onTabChange={onPreseasonTabChange}
                 theme={theme}
                 onThemeToggle={setTheme}
                 onLogOut={onLogout}
@@ -113,14 +122,23 @@ export function AppHeader() {
         );
     }
 
-    // Join League wizard + View League + Add Gymnasts (roster building) are
-    // all part of the same pre-draft flow — "Draft" stays the active nav tab
-    // throughout, even though none of them route through the (not-yet-built)
-    // /draft page itself. /leagues/:id and /leagues/:id/roster both match
-    // here; /leagues/new (Create League, currently disabled) does not.
-    const isLeagueRoute = /^\/leagues\/\d+/.test(location.pathname);
+    // Join/Create League wizards + View League + Add Gymnasts (roster
+    // building) are all part of the same pre-draft flow — "Draft" stays the
+    // active nav tab throughout, even though none of them route through the
+    // (not-yet-built) /draft page itself.
+    const isLeagueRoute = /^\/leagues\/(new|\d+)/.test(location.pathname);
     if (location.pathname.startsWith('/join') || isLeagueRoute) {
-        return <DSAppHeader logoHref="#/home" phase="preseason" activeTab="draft" theme={theme} onThemeToggle={setTheme} onLogOut={onLogout} />;
+        return (
+            <DSAppHeader
+                logoHref="#/home"
+                phase="preseason"
+                activeTab="draft"
+                onTabChange={onPreseasonTabChange}
+                theme={theme}
+                onThemeToggle={setTheme}
+                onLogOut={onLogout}
+            />
+        );
     }
 
     if (location.pathname.startsWith('/credits')) {
