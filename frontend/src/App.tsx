@@ -17,7 +17,16 @@ import { Lineups } from './pages/Lineups';
 import { Credits } from './pages/Credits';
 import { AdminScoresImport } from './pages/AdminScoresImport';
 import { takePendingJoinCode } from './lib/pendingJoin';
-import { ReactElement } from 'react';
+import { api } from './lib/api';
+import { randomTeamName, randomTeamColors } from './lib/randomTeam';
+import { ReactElement, useEffect, useState } from 'react';
+
+// The QA Sandbox League every new user gets auto-joined into so they land
+// somewhere with real data to try the Lineups page — see RedirectIfAuthed
+// below. Prototype-only convenience (lineups-page-requirements.md §14) —
+// reconsider (or gate behind an env flag) before this ever reaches real
+// production, where auto-enrolling real users into a fake league is wrong.
+const QA_SANDBOX_LEAGUE_CODE = 'QATEST';
 
 // HashRouter (not BrowserRouter) because this deploys as a static site on
 // GitHub Pages, which has no server-side rewrite rule for deep links —
@@ -57,14 +66,54 @@ function RequireAdmin({ children }: { children: ReactElement }) {
 
 // After Discord OAuth, Supabase redirects to the bare site root (see
 // AuthContext.signInWithDiscord) rather than a specific route. Once that
-// lands here and a session is picked up, send signed-in users on to /home.
+// lands here and a session is picked up, send signed-in users straight to
+// the Lineups page for their first league — auto-joining them into the QA
+// Sandbox League first if they don't have any league yet, so there's
+// always somewhere real to land (see QA_SANDBOX_LEAGUE_CODE above).
 function RedirectIfAuthed({ children }: { children: ReactElement }) {
     const { user, loading } = useAuth();
+    const [target, setTarget] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!user) {
+            setTarget(null);
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            const pendingCode = takePendingJoinCode();
+            if (pendingCode) {
+                if (!cancelled) setTarget(`/join/${pendingCode}`);
+                return;
+            }
+            try {
+                const leagues = await api.myLeagues();
+                if (leagues.length > 0) {
+                    if (!cancelled) setTarget(`/leagues/${leagues[0].id}/lineups`);
+                    return;
+                }
+                const qaLeague = await api.getLeagueByCode(QA_SANDBOX_LEAGUE_CODE);
+                if (qaLeague) {
+                    const [color1, color2] = randomTeamColors();
+                    const membership = await api.joinLeague(qaLeague.id, randomTeamName(), color1, color2);
+                    if (!cancelled) setTarget(`/leagues/${membership.id}/lineups`);
+                    return;
+                }
+            } catch {
+                // Auto-join failed (name collision, QATEST missing, network) —
+                // fall back to the normal dashboard rather than getting stuck.
+            }
+            if (!cancelled) setTarget('/home');
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [user]);
+
     if (loading) return <PageLoader />;
     if (user) {
-        const pendingCode = takePendingJoinCode();
-        if (pendingCode) return <Navigate to={`/join/${pendingCode}`} replace />;
-        return <Navigate to="/home" replace />;
+        if (!target) return <PageLoader />;
+        return <Navigate to={target} replace />;
     }
     return children;
 }

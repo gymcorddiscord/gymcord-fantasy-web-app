@@ -10,6 +10,7 @@ import {
     UserCircleIcon,
     PeopleIcon,
     ClipboardTextIcon,
+    PlusIcon,
     type AppHeaderTab,
     type LeagueOption,
     type SegmentedToggleOption
@@ -59,16 +60,29 @@ export function AppHeader() {
         };
     }, [user?.id]);
 
+    // Real leagues, plus two synthetic entries so "Join a League" / "Create
+    // a League" stay reachable from the same top-corner switcher now that
+    // Home (where they used to live front-and-center) isn't the default
+    // landing page anymore. The switcher has no other extension point.
     const leagueOptions: LeagueOption[] = useMemo(
-        () =>
-            myLeagues.map((m) => ({
+        () => [
+            ...myLeagues.map((m) => ({
                 id: String(m.id),
                 teamName: m.teamName,
                 leagueName: m.league.name,
                 icon: <TeamBadge color1={m.teamColor1} color2={m.teamColor2} size="sm" />
             })),
+            { id: '__join__', teamName: 'Join a League', leagueName: 'Enter an invite code', icon: <PlusIcon size={16} /> },
+            { id: '__create__', teamName: 'Create a League', leagueName: 'Start a new league', icon: <PlusIcon size={16} /> }
+        ],
         [myLeagues]
     );
+
+    function handleLeagueChange(id: string) {
+        if (id === '__join__') navigate('/join');
+        else if (id === '__create__') navigate('/leagues/new');
+        else navigate(`/leagues/${id}`);
+    }
 
     useEffect(() => {
         if (!accountMenuOpen) return;
@@ -149,7 +163,7 @@ export function AppHeader() {
                     nextWeekDisabled={viewedWeek >= SEASON_END_WEEK}
                     leagues={leagueOptions}
                     activeLeagueId={lineupsMembershipId}
-                    onLeagueChange={(id) => navigate(`/leagues/${id}`)}
+                    onLeagueChange={handleLeagueChange}
                     theme={theme}
                     onThemeToggle={setTheme}
                     onLogOut={onLogout}
@@ -172,7 +186,7 @@ export function AppHeader() {
                     onTabChange={onPreseasonTabChange}
                     leagues={leagueOptions}
                     activeLeagueId={viewLeagueMatch[1]}
-                    onLeagueChange={(id) => navigate(`/leagues/${id}`)}
+                    onLeagueChange={handleLeagueChange}
                     theme={theme}
                     onThemeToggle={setTheme}
                     onLogOut={onLogout}
@@ -220,7 +234,7 @@ export function AppHeader() {
                         <Logo />
                     </Link>
                     {leagueOptions.length > 0 && (
-                        <LeagueSwitcher leagues={leagueOptions} activeLeagueId={null} onChange={(id) => navigate(`/leagues/${id}`)} />
+                        <LeagueSwitcher leagues={leagueOptions} activeLeagueId={null} onChange={handleLeagueChange} />
                     )}
                     <div className="gds-app-header__tabs app-header-tabs--pushed">
                         <SegmentedToggle size="lg" value={activeTab} onChange={(tab) => navigate(TAB_PATHS[tab])} options={NAV_TABS} />

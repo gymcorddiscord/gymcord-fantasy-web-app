@@ -67,32 +67,6 @@ export function Home() {
                     </Link>
                 </div>
             )}
-
-            <div className="section-title" style={{ marginTop: 32 }}>Get moving</div>
-            <div className="nav-tile-grid">
-                <Link to="/gymnasts" className="nav-tile">
-                    <div className="nav-tile__head">
-                        <h3>Gymnasts</h3>
-                    </div>
-                    <p>Browse the 2026 NCAA field: averages and most recent scores on every apparatus.</p>
-                </Link>
-
-                <div className="nav-tile nav-tile--disabled">
-                    <div className="nav-tile__head">
-                        <h3>Draft</h3>
-                        <span className="badge badge-muted">Coming soon</span>
-                    </div>
-                    <p>Build your roster once drafting opens for your league.</p>
-                </div>
-
-                <div className="nav-tile nav-tile--disabled">
-                    <div className="nav-tile__head">
-                        <h3>Lineup</h3>
-                        <span className="badge badge-muted">Coming soon</span>
-                    </div>
-                    <p>Choose who competes each week on vault, bars, beam, and floor.</p>
-                </div>
-            </div>
         </main>
     );
 }
