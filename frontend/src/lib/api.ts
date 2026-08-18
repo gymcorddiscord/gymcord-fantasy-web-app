@@ -4,6 +4,7 @@
  * public catalog data and feedback submission.
  */
 import { supabase } from './supabase';
+import { computeScoreMetrics, Category, MetricSet, ScoreRow } from './scoreMetrics';
 
 export interface User {
     id: string;
@@ -366,6 +367,51 @@ export const api = {
                 beam: scores.beam ?? null,
                 floor: scores.floor ?? null
             };
+        }
+        return result;
+    },
+
+    // Every metric (Average/Median/Most Recent/High) x category
+    // (VT/UB/BB/FX/AA) for a batch of gymnasts, computed live from the
+    // `scores` table rather than the flat *_avg snapshot columns. NQS is not
+    // included — see the note atop scoreMetrics.ts.
+    scoreMetrics: async (
+        gymnastIds: number[],
+        seasonYear = 2026
+    ): Promise<Record<number, Record<Category, MetricSet>>> => {
+        if (gymnastIds.length === 0) return {};
+
+        // Same 1000-row PostgREST cap as gymnasts() — a full season is
+        // several scores per gymnast, so this pages well past one request.
+        const PAGE_SIZE = 1000;
+        let rows: any[] = [];
+        for (let from = 0; ; from += PAGE_SIZE) {
+            const { data, error } = await supabase
+                .from('scores')
+                .select('gymnast_id, event, week_number, score, meet_date')
+                .eq('season_year', seasonYear)
+                .in('gymnast_id', gymnastIds)
+                // Explicit order is required, not cosmetic: paging with
+                // .range() over an unordered query lets Postgres return
+                // rows in a different order per request, silently
+                // duplicating some scores and dropping others.
+                .order('id')
+                .range(from, from + PAGE_SIZE - 1);
+            if (error) throw error;
+            rows = rows.concat(data || []);
+            if (!data || data.length < PAGE_SIZE) break;
+        }
+
+        const byGymnast = new Map<number, ScoreRow[]>();
+        for (const row of rows) {
+            const list = byGymnast.get(row.gymnast_id) ?? [];
+            list.push({ event: row.event, weekNumber: row.week_number, score: Number(row.score), meetDate: row.meet_date });
+            byGymnast.set(row.gymnast_id, list);
+        }
+
+        const result: Record<number, Record<Category, MetricSet>> = {};
+        for (const id of gymnastIds) {
+            result[id] = computeScoreMetrics(byGymnast.get(id) ?? []);
         }
         return result;
     },
