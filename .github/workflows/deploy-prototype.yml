@@ -1,0 +1,101 @@
+name: Deploy Prototype (alongside production)
+
+# Manual-only. Builds the current production site (main, unchanged) AND a
+# prototype branch, and deploys them together as one Pages artifact — the
+# prototype lives at /prototype/<slug>/ so it never overwrites or interferes
+# with the real production deployment at the site root. GitHub Pages only
+# supports one deployed site per repo, so this is the only way to publish a
+# branch preview without touching what real users see.
+on:
+  workflow_dispatch:
+    inputs:
+      prototype_ref:
+        description: 'Branch to build as the prototype'
+        required: true
+        default: 'lineups-page'
+      prototype_slug:
+        description: 'URL subpath the prototype is served at (/prototype/<slug>/)'
+        required: true
+        default: 'lineups'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout production (main)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: production
+
+      - name: Checkout prototype
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.prototype_ref }}
+          path: prototype
+
+      - name: Checkout design system
+        uses: actions/checkout@v4
+        with:
+          repository: gymcorddiscord/gymcord-design-system
+          path: gymcord-design-system
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            production/frontend/package-lock.json
+            prototype/frontend/package-lock.json
+            gymcord-design-system/package-lock.json
+
+      - name: Build design system
+        run: npm ci && npm run build
+        working-directory: gymcord-design-system
+
+      - name: Build production
+        run: |
+          npm ci --prefix production/frontend
+          npm run build --prefix production/frontend
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Build prototype
+        run: |
+          npm ci --prefix prototype/frontend
+          npm run build --prefix prototype/frontend -- --base=/gymcord-fantasy-web-app/prototype/${{ inputs.prototype_slug }}/
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Merge into one Pages artifact
+        run: |
+          mkdir -p site/prototype/${{ inputs.prototype_slug }}
+          cp -r production/frontend/dist/. site/
+          cp -r prototype/frontend/dist/. site/prototype/${{ inputs.prototype_slug }}/
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
