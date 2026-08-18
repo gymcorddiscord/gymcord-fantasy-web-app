@@ -113,6 +113,53 @@ export async function clearWeek(leagueMemberId: number, seasonYear: number, week
     if (error) throw error;
 }
 
+export interface WeekScoreRow {
+    gymnastId: number;
+    event: Event;
+    score: number;
+}
+
+export async function fetchWeekScores(gymnastIds: number[], seasonYear: number, weekNumber: number): Promise<WeekScoreRow[]> {
+    if (gymnastIds.length === 0) return [];
+    const { data, error } = await supabase
+        .from('scores')
+        .select('gymnast_id, event, score')
+        .eq('season_year', seasonYear)
+        .eq('week_number', weekNumber)
+        .in('gymnast_id', gymnastIds);
+    if (error) throw error;
+    return (data || []).map((r) => ({ gymnastId: r.gymnast_id, event: r.event, score: Number(r.score) }));
+}
+
+export type Outcome = 'counted' | 'dropped';
+
+// Outcomes keyed by "gymnastId-event". For each apparatus, ranks that
+// week's scores among only the gymnasts who were actually selected —
+// the top `countScore` counted toward the team total, the rest were
+// dropped, mirroring the "X up, Y count" model (PRD §3.1). A gymnast
+// absent from the map simply wasn't selected that week — nothing to report.
+export function computeWeekOutcomes(selections: SelectionMap, scores: WeekScoreRow[], countScore: number): Map<string, Outcome> {
+    const scoreByKey = new Map<string, number>();
+    for (const s of scores) scoreByKey.set(`${s.gymnastId}-${s.event}`, s.score);
+
+    const byEvent: Record<Event, { gymnastId: number; score: number }[]> = { vault: [], bars: [], beam: [], floor: [] };
+    for (const [gymnastId, events] of selections) {
+        for (const event of events) {
+            const score = scoreByKey.get(`${gymnastId}-${event}`);
+            if (score != null) byEvent[event].push({ gymnastId, score });
+        }
+    }
+
+    const outcomes = new Map<string, Outcome>();
+    (Object.keys(byEvent) as Event[]).forEach((event) => {
+        const ranked = [...byEvent[event]].sort((a, b) => b.score - a.score);
+        ranked.forEach((row, i) => {
+            outcomes.set(`${row.gymnastId}-${event}`, i < countScore ? 'counted' : 'dropped');
+        });
+    });
+    return outcomes;
+}
+
 // Replaces every selection in `toWeek` with a copy of `fromWeek`'s —
 // backs both "Import Last Week" (one target week) and "Populate All Future
 // Weeks" (called once per remaining week).

@@ -2307,6 +2307,9 @@ a.nav-tile:hover {
     z-index: 1;
     background: var(--bg-1);
 }
+.lineup-matrix .lineup-matrix__university-col {
+    text-align: left;
+}
 .lineup-matrix tbody tr:hover td.th-sticky {
     background: var(--bg-2);
 }
@@ -2387,4 +2390,25 @@ a.nav-tile:hover {
 .empty-state {
     padding: 32px 16px;
     text-align: center;
+}
+
+.lineup-locked-banner {
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+/* Last-week (or, for a locked past week, that week's own) counted/dropped
+   outcome — a reference signal, not a selection state, so it's a subtle
+   text-color tint on the score value rather than a loud background fill. */
+.lineup-outcome--counted .gds-score-cell__value {
+    color: var(--success);
+    font-weight: 700;
+}
+.lineup-outcome--dropped .gds-score-cell__value {
+    color: var(--text-tertiary);
 }

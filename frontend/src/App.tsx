@@ -160,6 +160,14 @@ function Shell() {
                             </RequireAuth>
                         }
                     />
+                    <Route
+                        path="/leagues/:membershipId/lineups/:week"
+                        element={
+                            <RequireAuth>
+                                <Lineups />
+                            </RequireAuth>
+                        }
+                    />
                     <Route path="/credits" element={<Credits />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

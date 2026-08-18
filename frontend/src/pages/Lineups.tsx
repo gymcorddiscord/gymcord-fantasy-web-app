@@ -21,6 +21,7 @@ import { api, Gymnast, LeagueMembership } from '../lib/api';
 import { Category, Metric, MetricSet } from '../lib/scoreMetrics';
 import {
     Event,
+    Outcome,
     SelectionMap,
     SEASON_YEAR,
     CURRENT_WEEK,
@@ -28,6 +29,8 @@ import {
     MeetScheduleEntry,
     fetchMeetSchedule,
     fetchSelections,
+    fetchWeekScores,
+    computeWeekOutcomes,
     setSelection,
     clearWeek,
     copyWeekSelections
@@ -81,14 +84,20 @@ function counterClass(count: number, cap: number): string {
 }
 
 export function Lineups() {
-    const { membershipId } = useParams<{ membershipId: string }>();
+    const { membershipId, week: weekParam } = useParams<{ membershipId: string; week?: string }>();
     const navigate = useNavigate();
+
+    const parsedWeek = weekParam ? Number(weekParam) : NaN;
+    const viewedWeek = Number.isFinite(parsedWeek) && parsedWeek >= 1 ? parsedWeek : CURRENT_WEEK;
+    const isHistorical = viewedWeek < CURRENT_WEEK;
+    const outcomesWeekLabel = isHistorical ? viewedWeek : viewedWeek - 1;
 
     const [membership, setMembership] = useState<LeagueMembership | null>(null);
     const [roster, setRoster] = useState<RosterRow[]>([]);
     const [metrics, setMetrics] = useState<Record<number, Record<Category, MetricSet>>>({});
     const [schedule, setSchedule] = useState<Record<number, MeetScheduleEntry[]>>({});
     const [selections, setSelections] = useState<SelectionMap>(new Map());
+    const [outcomes, setOutcomes] = useState<Map<string, Outcome>>(new Map());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -132,15 +141,23 @@ export function Lineups() {
                 setRoster(rosterRows);
 
                 const gymnastIds = rosterRows.map((r) => r.gymnastId);
-                const [metricsResult, scheduleResult, selectionsResult] = await Promise.all([
+                // Historical (past) weeks show that week's OWN counted/dropped
+                // outcome — that's what "results" means once it's locked. The
+                // live/future week instead shows LAST week's outcome, as a
+                // reference signal while still deciding this week's picks.
+                const outcomesWeek = isHistorical ? viewedWeek : viewedWeek - 1;
+                const [metricsResult, scheduleResult, selectionsResult, outcomeSelections, outcomeScores] = await Promise.all([
                     api.scoreMetrics(gymnastIds, SEASON_YEAR),
-                    fetchMeetSchedule(gymnastIds, SEASON_YEAR, CURRENT_WEEK),
-                    fetchSelections(m.id, SEASON_YEAR, CURRENT_WEEK)
+                    fetchMeetSchedule(gymnastIds, SEASON_YEAR, viewedWeek),
+                    fetchSelections(m.id, SEASON_YEAR, viewedWeek),
+                    outcomesWeek >= 1 ? fetchSelections(m.id, SEASON_YEAR, outcomesWeek) : Promise.resolve(new Map()),
+                    outcomesWeek >= 1 ? fetchWeekScores(gymnastIds, SEASON_YEAR, outcomesWeek) : Promise.resolve([])
                 ]);
                 if (cancelled) return;
                 setMetrics(metricsResult);
                 setSchedule(scheduleResult);
                 setSelections(selectionsResult);
+                setOutcomes(computeWeekOutcomes(outcomeSelections, outcomeScores, m.league.countScore));
             } catch {
                 if (!cancelled) setError('Could not load your lineup. Please try again.');
             } finally {
@@ -150,7 +167,7 @@ export function Lineups() {
         return () => {
             cancelled = true;
         };
-    }, [membershipId, navigate]);
+    }, [membershipId, viewedWeek, isHistorical, navigate]);
 
     const filteredRoster = useMemo(() => {
         return roster.filter((row) => {
@@ -202,7 +219,7 @@ export function Lineups() {
     // same reasoning as disabling it while Hide Bye/Hide Injured are
     // filtering rows out (the DOM wouldn't have every roster row to read
     // positions back from).
-    const dragEnabled = sort === null && !hideBye && !hideInjured;
+    const dragEnabled = sort === null && !hideBye && !hideInjured && !isHistorical;
     useEffect(() => {
         if (!dragEnabled || loading || !tbodyRef.current || !membership) return;
         const tbody = tbodyRef.current;
@@ -227,7 +244,7 @@ export function Lineups() {
     }, [dragEnabled, loading, membership?.id]);
 
     async function handleToggle(gymnastId: number, event: Event, checked: boolean) {
-        if (!membership) return;
+        if (!membership || isHistorical) return;
         // Cap enforcement: block new selections once that apparatus is at
         // capacity — unchecking is always allowed.
         if (checked && counts[event] >= upCount) return;
@@ -241,7 +258,7 @@ export function Lineups() {
         setSelections(next);
 
         try {
-            await setSelection(membership.id, membership.leagueId, gymnastId, event, SEASON_YEAR, CURRENT_WEEK, checked);
+            await setSelection(membership.id, membership.leagueId, gymnastId, event, SEASON_YEAR, viewedWeek, checked);
             flashSaved();
         } catch {
             setSelections(prev); // roll back on failure
@@ -249,10 +266,10 @@ export function Lineups() {
     }
 
     async function handleClearAll() {
-        if (!membership) return;
+        if (!membership || isHistorical) return;
         setBulkBusy(true);
         try {
-            await clearWeek(membership.id, SEASON_YEAR, CURRENT_WEEK);
+            await clearWeek(membership.id, SEASON_YEAR, viewedWeek);
             setSelections(new Map());
             flashSaved();
         } finally {
@@ -262,11 +279,11 @@ export function Lineups() {
     }
 
     async function handleImportLastWeek() {
-        if (!membership) return;
+        if (!membership || isHistorical) return;
         setBulkBusy(true);
         try {
-            await copyWeekSelections(membership.id, membership.leagueId, SEASON_YEAR, CURRENT_WEEK - 1, CURRENT_WEEK);
-            setSelections(await fetchSelections(membership.id, SEASON_YEAR, CURRENT_WEEK));
+            await copyWeekSelections(membership.id, membership.leagueId, SEASON_YEAR, viewedWeek - 1, viewedWeek);
+            setSelections(await fetchSelections(membership.id, SEASON_YEAR, viewedWeek));
             flashSaved();
         } finally {
             setBulkBusy(false);
@@ -275,11 +292,11 @@ export function Lineups() {
     }
 
     async function handlePopulateFutureWeeks() {
-        if (!membership) return;
+        if (!membership || isHistorical) return;
         setBulkBusy(true);
         try {
-            for (let week = CURRENT_WEEK + 1; week <= SEASON_END_WEEK; week++) {
-                await copyWeekSelections(membership.id, membership.leagueId, SEASON_YEAR, CURRENT_WEEK, week);
+            for (let week = viewedWeek + 1; week <= SEASON_END_WEEK; week++) {
+                await copyWeekSelections(membership.id, membership.leagueId, SEASON_YEAR, viewedWeek, week);
             }
         } finally {
             setBulkBusy(false);
@@ -307,18 +324,29 @@ export function Lineups() {
 
     return (
         <main className="page page--wide">
-            <h1 className="page-title">Week {CURRENT_WEEK} Lineup</h1>
+            <h1 className="page-title">Week {viewedWeek} Lineup</h1>
             <p className="page-subtitle">
                 {membership.teamName} · {membership.league.name}
             </p>
+
+            {isHistorical && (
+                <div className="lineup-locked-banner">
+                    Week {viewedWeek} is locked — showing what actually happened, read-only.
+                </div>
+            )}
+
             <div className="lineup-controls">
                 <div className="lineup-controls__left">
-                    <Button variant="secondary" disabled={CURRENT_WEEK <= 1 || bulkBusy} onClick={() => setImportConfirmOpen(true)}>
-                        Import Last Week
-                    </Button>
-                    <Button variant="secondary" disabled={bulkBusy} onClick={() => setPopulateConfirmOpen(true)} title="Apply these lineups to all future weeks">
-                        Populate All Future Weeks
-                    </Button>
+                    {!isHistorical && (
+                        <>
+                            <Button variant="secondary" disabled={viewedWeek <= 1 || bulkBusy} onClick={() => setImportConfirmOpen(true)}>
+                                Import Last Week
+                            </Button>
+                            <Button variant="secondary" disabled={bulkBusy} onClick={() => setPopulateConfirmOpen(true)} title="Apply these lineups to all future weeks">
+                                Populate All Future Weeks
+                            </Button>
+                        </>
+                    )}
                 </div>
                 <div className="lineup-controls__right">
                     <Dropdown options={METRIC_OPTIONS} value={metric} onChange={setMetric} />
@@ -328,9 +356,11 @@ export function Lineups() {
                     <div className="lineup-toggle">
                         <Checkbox checked={hideInjured} onChange={setHideInjured} label="Hide Injured" />
                     </div>
-                    <Button variant="tertiary" disabled={!hasAnySelections || bulkBusy} onClick={() => setClearConfirmOpen(true)}>
-                        Clear All
-                    </Button>
+                    {!isHistorical && (
+                        <Button variant="tertiary" disabled={!hasAnySelections || bulkBusy} onClick={() => setClearConfirmOpen(true)}>
+                            Clear All
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -344,7 +374,7 @@ export function Lineups() {
                                 <th className="th-sticky th-sortable" onClick={() => handleSort('name')}>
                                     Gymnast{sortIndicator('name')}
                                 </th>
-                                <th className="th-sortable" onClick={() => handleSort('university')}>
+                                <th className="th-sortable lineup-matrix__university-col" onClick={() => handleSort('university')}>
                                     University{sortIndicator('university')}
                                 </th>
                                 {EVENTS.map((e) => (
@@ -388,18 +418,20 @@ export function Lineups() {
                                                 </span>
                                             </span>
                                         </td>
-                                        <td>{row.gymnast.team.shortName}</td>
+                                        <td className="lineup-matrix__university-col">{row.gymnast.team.shortName}</td>
                                         {EVENTS.map((e) => {
                                             const value = metrics[row.gymnastId]?.[e.category]?.[metric] ?? null;
                                             const checked = selections.get(row.gymnastId)?.has(e.key) ?? false;
                                             const atCap = counts[e.key] >= upCount && !checked;
                                             const competes = row.gymnast.events[e.key];
+                                            const outcome = outcomes.get(`${row.gymnastId}-${e.key}`);
+                                            const outcomeClass = outcome === 'counted' ? 'lineup-outcome--counted' : outcome === 'dropped' ? 'lineup-outcome--dropped' : '';
                                             return (
-                                                <td key={e.key}>
+                                                <td key={e.key} className={outcomeClass} title={outcome === 'counted' ? `Counted toward the team total in Week ${outcomesWeekLabel}` : outcome === 'dropped' ? `Selected but dropped in Week ${outcomesWeekLabel}` : undefined}>
                                                     <ScoreCell
                                                         value={competes ? value : null}
                                                         checked={checked}
-                                                        disabled={atCap}
+                                                        disabled={atCap || isHistorical}
                                                         onCheckedChange={(next) => handleToggle(row.gymnastId, e.key, next)}
                                                     />
                                                 </td>
@@ -423,7 +455,7 @@ export function Lineups() {
             <Dialog
                 open={clearConfirmOpen}
                 onClose={() => setClearConfirmOpen(false)}
-                title={`Clear all lineup selections for Week ${CURRENT_WEEK}?`}
+                title={`Clear all lineup selections for Week ${viewedWeek}?`}
                 actions={
                     <>
                         <Button variant="tertiary" onClick={() => setClearConfirmOpen(false)} disabled={bulkBusy}>
@@ -435,7 +467,7 @@ export function Lineups() {
                     </>
                 }
             >
-                <Text>This removes every gymnast currently selected for Week {CURRENT_WEEK}.</Text>
+                <Text>This removes every gymnast currently selected for Week {viewedWeek}.</Text>
             </Dialog>
 
             <Dialog

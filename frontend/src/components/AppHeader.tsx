@@ -17,7 +17,7 @@ import {
 import { useAuth } from '../lib/AuthContext';
 import { applyTheme, getInitialTheme, Theme } from '../lib/theme';
 import { api, LeagueMembership } from '../lib/api';
-import { CURRENT_WEEK } from '../lib/lineups';
+import { CURRENT_WEEK, SEASON_END_WEEK } from '../lib/lineups';
 import { TeamBadge } from './TeamBadge';
 
 type NavTab = 'draft' | 'gymnasts';
@@ -126,25 +126,26 @@ export function AppHeader() {
         );
     }
 
-    // Lineups is the first "season" phase page — real week prev/next comes
-    // in a later pass (see lineups-page-requirements.md §8); for now the
-    // navigator shows the mock current week as a static, non-advancing label.
-    const lineupsMatch = location.pathname.match(/^\/leagues\/(\d+)\/lineups/);
+    const lineupsMatch = location.pathname.match(/^\/leagues\/(\d+)\/lineups(?:\/(\d+))?/);
     if (lineupsMatch) {
+        const lineupsMembershipId = lineupsMatch[1];
+        const viewedWeek = lineupsMatch[2] ? Number(lineupsMatch[2]) : CURRENT_WEEK;
         return (
             <DSAppHeader
                 logoHref="#/home"
                 phase="season"
                 activeTab="lineups"
                 onTabChange={(tab) => {
-                    if (tab === 'lineups') navigate(`/leagues/${lineupsMatch[1]}/lineups`);
+                    if (tab === 'lineups') navigate(`/leagues/${lineupsMembershipId}/lineups/${viewedWeek}`);
                 }}
-                weekLabel={`Week ${CURRENT_WEEK}`}
-                weekStatusLabel="CURRENT"
-                prevWeekDisabled
-                nextWeekDisabled
+                weekLabel={`Week ${viewedWeek}`}
+                weekStatusLabel={viewedWeek === CURRENT_WEEK ? 'CURRENT' : viewedWeek < CURRENT_WEEK ? 'LOCKED' : 'UPCOMING'}
+                onPrevWeek={() => navigate(`/leagues/${lineupsMembershipId}/lineups/${viewedWeek - 1}`)}
+                onNextWeek={() => navigate(`/leagues/${lineupsMembershipId}/lineups/${viewedWeek + 1}`)}
+                prevWeekDisabled={viewedWeek <= 1}
+                nextWeekDisabled={viewedWeek >= SEASON_END_WEEK}
                 leagues={leagueOptions}
-                activeLeagueId={lineupsMatch[1]}
+                activeLeagueId={lineupsMembershipId}
                 onLeagueChange={(id) => navigate(`/leagues/${id}`)}
                 theme={theme}
                 onThemeToggle={setTheme}
