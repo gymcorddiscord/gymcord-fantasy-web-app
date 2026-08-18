@@ -348,13 +348,15 @@ export function Lineups() {
                                     University{sortIndicator('university')}
                                 </th>
                                 {EVENTS.map((e) => (
-                                    <th key={e.key} className="th-sortable lineup-matrix__event-header" onClick={() => handleSort(e.key)}>
-                                        <span>
-                                            {e.label}
-                                            {sortIndicator(e.key)}
-                                        </span>
-                                        <span className={`lineup-counter ${counterClass(counts[e.key], upCount)}`}>
-                                            ✓ {counts[e.key]} / {upCount}
+                                    <th key={e.key} className="th-sortable" onClick={() => handleSort(e.key)}>
+                                        <span className="lineup-matrix__event-header">
+                                            <span>
+                                                {e.label}
+                                                {sortIndicator(e.key)}
+                                            </span>
+                                            <span className={`lineup-counter ${counterClass(counts[e.key], upCount)}`}>
+                                                ✓ {counts[e.key]} / {upCount}
+                                            </span>
                                         </span>
                                     </th>
                                 ))}
@@ -367,21 +369,23 @@ export function Lineups() {
                                 const isDouble = meets.length >= 2;
                                 return (
                                     <tr key={row.gymnastId} data-gymnast-id={row.gymnastId} className={row.gymnast.injuryStatus === 'long_term' ? 'lineup-row--long-term' : isBye ? 'lineup-row--bye' : undefined}>
-                                        <td className="th-sticky lineup-matrix__name-cell">
-                                            <span
-                                                className={`lineup-matrix__drag-handle${dragEnabled ? '' : ' lineup-matrix__drag-handle--disabled'}`}
-                                                aria-hidden="true"
-                                                title={dragEnabled ? 'Drag to reorder' : 'Clear sorting/filters to reorder'}
-                                            >
-                                                <DotsSixIcon size={14} />
-                                            </span>
-                                            <span className="lineup-matrix__name">{row.gymnast.firstName} {row.gymnast.lastName}</span>
-                                            <span className="lineup-matrix__badges">
-                                                {row.gymnast.injuryStatus === 'long_term' && <InjuryBadge severity="long-term" />}
-                                                {row.gymnast.injuryStatus === 'short_term' && <InjuryBadge severity="short-term" />}
-                                                {isBye && <ByeBadge />}
-                                                {isDouble && <DoubleWeekBadge />}
-                                                {!isBye && !isDouble && meets[0]?.location && <HomeAwayBadge type={meets[0].location} />}
+                                        <td className="th-sticky">
+                                            <span className="lineup-matrix__name-cell">
+                                                <span
+                                                    className={`lineup-matrix__drag-handle${dragEnabled ? '' : ' lineup-matrix__drag-handle--disabled'}`}
+                                                    aria-hidden="true"
+                                                    title={dragEnabled ? 'Drag to reorder' : 'Clear sorting/filters to reorder'}
+                                                >
+                                                    <DotsSixIcon size={14} />
+                                                </span>
+                                                <span className="lineup-matrix__name">{row.gymnast.firstName} {row.gymnast.lastName}</span>
+                                                <span className="lineup-matrix__badges">
+                                                    {row.gymnast.injuryStatus === 'long_term' && <InjuryBadge severity="long-term" />}
+                                                    {row.gymnast.injuryStatus === 'short_term' && <InjuryBadge severity="short-term" />}
+                                                    {isBye && <ByeBadge />}
+                                                    {isDouble && <DoubleWeekBadge />}
+                                                    {!isBye && !isDouble && meets[0]?.location && <HomeAwayBadge type={meets[0].location} />}
+                                                </span>
                                             </span>
                                         </td>
                                         <td>{row.gymnast.team.shortName}</td>
