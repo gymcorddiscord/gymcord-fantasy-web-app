@@ -74,6 +74,11 @@ export function parseCsv(text: string): string[][] {
     return rows.filter((r) => !(r.length === 1 && r[0].trim() === ''));
 }
 
+// 'home' | 'away' | null (unknown) — feeds individual NQS (PRD 10.9), which
+// needs each score tagged by meet location. null is expected for most rows
+// today since this is new; it's optional, not a validation failure.
+export type MeetLocation = 'home' | 'away';
+
 export interface ParsedScoreRow {
     rowNumber: number; // 1-based, counting from the first data row (header excluded)
     meetDate: string;  // YYYY-MM-DD
@@ -83,6 +88,7 @@ export interface ParsedScoreRow {
     score: number;
     meetName: string | null;
     opponent: string | null;
+    location: MeetLocation | null;
 }
 
 export type RowOutcome =
@@ -135,6 +141,7 @@ export function parseScoreImportCsv(
         score: col('score'),
         meetName: col('meet_name'),
         opponent: col('opponent'),
+        location: col('location'),
         exhibition: col('exhibition')
     };
 
@@ -163,6 +170,7 @@ export function parseScoreImportCsv(
         const eventRaw = get(idx.event).toUpperCase();
         const scoreRaw = get(idx.score);
         const exhibition = parseBoolean(get(idx.exhibition));
+        const locationRaw = get(idx.location).toLowerCase();
 
         if (!isValidIsoDate(meetDate)) {
             outcomes.push({ kind: 'error', rowNumber, message: `Invalid meet_date "${meetDate}" (expected YYYY-MM-DD).` });
@@ -184,6 +192,10 @@ export function parseScoreImportCsv(
         const score = Number(scoreRaw);
         if (scoreRaw === '' || Number.isNaN(score)) {
             outcomes.push({ kind: 'error', rowNumber, message: `Invalid score "${scoreRaw}".` });
+            return;
+        }
+        if (locationRaw !== '' && locationRaw !== 'home' && locationRaw !== 'away') {
+            outcomes.push({ kind: 'error', rowNumber, message: `Invalid location "${locationRaw}" (expected "home" or "away", or leave blank).` });
             return;
         }
 
@@ -208,7 +220,8 @@ export function parseScoreImportCsv(
             event: mapped,
             score,
             meetName: get(idx.meetName) || null,
-            opponent: get(idx.opponent) || null
+            opponent: get(idx.opponent) || null,
+            location: locationRaw === 'home' || locationRaw === 'away' ? locationRaw : null
         });
     });
 
@@ -325,6 +338,7 @@ export interface ManualScoreInput {
     score: number;
     meetName: string | null;
     opponent: string | null;
+    location: MeetLocation | null;
 }
 
 export async function insertManualScore(input: ManualScoreInput): Promise<void> {
@@ -341,7 +355,8 @@ export async function insertManualScore(input: ManualScoreInput): Promise<void> 
         score: input.score,
         meet_date: input.meetDate,
         meet_name: input.meetName,
-        opponent: input.opponent
+        opponent: input.opponent,
+        location: input.location
     });
     if (error) throw error;
 }
@@ -405,6 +420,7 @@ export async function submitScoreImport(filename: string, outcomes: RowOutcome[]
                 meet_date: o.row.meetDate,
                 meet_name: o.row.meetName,
                 opponent: o.row.opponent,
+                location: o.row.location,
                 import_batch_id: batch.id
             }))
         );
@@ -423,6 +439,7 @@ export async function submitScoreImport(filename: string, outcomes: RowOutcome[]
                 score: o.row.score,
                 meet_name: o.row.meetName,
                 opponent: o.row.opponent,
+                location: o.row.location,
                 reason: o.reason,
                 matched_gymnast_id: o.matchedGymnastId
             }))
@@ -445,6 +462,7 @@ export interface FlaggedRow {
     score: number;
     meetName: string | null;
     opponent: string | null;
+    location: MeetLocation | null;
     reason: 'no_gymnast_match' | 'possible_duplicate';
     matchedGymnastId: number | null;
 }
@@ -461,6 +479,7 @@ function toFlaggedRow(row: any): FlaggedRow {
         score: row.score,
         meetName: row.meet_name,
         opponent: row.opponent,
+        location: row.location,
         reason: row.reason,
         matchedGymnastId: row.matched_gymnast_id
     };
@@ -491,6 +510,7 @@ export async function approveFlaggedRow(row: FlaggedRow, gymnastId: number): Pro
         meet_date: row.meetDate,
         meet_name: row.meetName,
         opponent: row.opponent,
+        location: row.location,
         import_batch_id: row.batchId
     });
     if (insertError) {

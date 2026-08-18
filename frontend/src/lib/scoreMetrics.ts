@@ -4,10 +4,15 @@
  * season_average columns on `gymnasts` (those are a one-time import
  * snapshot and won't reflect new weeks as they're added).
  *
- * NQS is intentionally not computed here: official NCAA NQS depends on a
- * gymnast's national ranking and a drop-lowest rule applied across ALL
- * regional competitors, which our own `scores` table can't reproduce — it
- * stays the scraped snapshot on `gymnasts.*_nqs` (see db/2026-nqs-import.sql).
+ * NQS is intentionally not computed here yet. Individual NQS (PRD 10.9) is
+ * actually a per-gymnast formula — 3 highest home + 3 highest away scores
+ * on an apparatus, drop the top of those six, average the remaining five —
+ * so it's computable in principle from her own rows. The blocker is data,
+ * not the formula: `scores` only gained a `location` (home/away) column
+ * once this file was written, so the historical rows it needs don't carry
+ * it. Until enough new rows do, NQS stays the scraped snapshot on
+ * `gymnasts.*_nqs` (see db/2026-nqs-import.sql). Revisit once there's
+ * enough home/away-tagged data to compute it live.
  */
 
 export type Category = 'vault' | 'bars' | 'beam' | 'floor' | 'aa';

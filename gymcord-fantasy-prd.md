@@ -3841,17 +3841,18 @@ Optional Columns:
 
 - meet\_name (string)  
 - opponent (string)  
+- location (string): "home" or "away"; blank/omitted if unknown. Feeds individual NQS (see 10.9) once enough scores carry it — not required for fantasy scoring itself.  
 - exhibition (boolean): true if exhibition performance (will be excluded)
 
 Example Format:
 
-meet\_date,gymnast\_name,gymnast\_school,event,score,meet\_name
+meet\_date,gymnast\_name,gymnast\_school,event,score,meet\_name,location
 
-2025-02-14,Jordan Chiles,UCLA,FX,9.950,UCLA vs Utah
+2025-02-14,Jordan Chiles,UCLA,FX,9.950,UCLA vs Utah,home
 
-2025-02-14,Jordan Chiles,UCLA,VT,9.925,UCLA vs Utah
+2025-02-14,Jordan Chiles,UCLA,VT,9.925,UCLA vs Utah,home
 
-2025-02-14,Leanne Wong,Florida,AA,39.650,Florida vs Georgia
+2025-02-14,Leanne Wong,Florida,AA,39.650,Florida vs Georgia,away
 
 Note: All-Around scores are NOT used for fantasy scoring \- individual events only
 
@@ -3860,6 +3861,7 @@ Validation Rules:
 - meet\_date must be valid date  
 - score must be between 0.0 and 10.0  
 - event must be VT, UB, BB, or FX (not AA)  
+- location, if given, must be "home" or "away"  
 - gymnast must exist in database or be auto-created with approval  
 - Duplicate score entries for same gymnast/event/meet flagged for review
 
