@@ -165,12 +165,47 @@ create table if not exists public.leagues (
     season_ending_only     boolean not null default false,
     regular_season_trades  boolean not null default false,
     other_trade_rules      text,
+    theme_text      text,
+    -- Draft/trade/waiver settings from the Create League wizard (CreateLeague.tsx).
+    -- These already existed on the live table — this block just catches
+    -- schema.sql up to match, it was never captured here when they shipped.
+    draft_style         text not null default 'previously_drafted' check (draft_style in ('previously_drafted', 'autodraft')),
+    draft_order         text check (draft_order in ('snake', 'rotating', 'fixed')),
+    autodraft_start_at  timestamptz,
+    trade_mode          text not null default 'waiver' check (trade_mode in ('no_trades', 'waiver')),
+    -- Day+time a waiver window closes, always 11:59 PM on the named day —
+    -- see WAIVER_DAY_OPTIONS in CreateLeague.tsx for the full 7-value set.
+    waiver_process_day  text default 'wed_2359' check (waiver_process_day in ('sun_2359', 'mon_2359', 'tue_2359', 'wed_2359', 'thu_2359', 'fri_2359', 'sat_2359')),
+    waiver_priority     text default 'reverse_snake' check (waiver_priority in ('reverse_snake', 'reverse_rotating', 'reverse_fixed')),
+    league_icon         text not null default 'star' check (league_icon in (
+        'books', 'butterfly', 'coins', 'confetti', 'crown', 'dice-three', 'evergreen-tree', 'exam',
+        'fast-forward', 'fire', 'gift', 'globe', 'graduation-cap', 'hand-peace', 'magic-wand', 'medal',
+        'moon-stars', 'music-notes', 'palette', 'paw-print', 'shooting-star', 'snowflake', 'sparkle',
+        'star', 'student', 'trophy', 'unicorn', 'yin-yang'
+    )),
     created_at      timestamptz not null default now(),
     constraint roster_size_bounds check (roster_size between 5 and 50),
     constraint up_count_bounds check (up_count between 1 and roster_size),
     constraint count_score_bounds check (count_score between 1 and up_count),
     constraint injury_trade_timing_valid check (injury_trade_timing in ('as_it_happens', 'draft'))
 );
+
+-- Backfills the columns above on an already-provisioned database, where the
+-- `create table if not exists` is a no-op — safe to re-run, and a no-op
+-- itself against the live DB, which already has all of these.
+alter table public.leagues add column if not exists theme_text text;
+alter table public.leagues add column if not exists draft_style text not null default 'previously_drafted' check (draft_style in ('previously_drafted', 'autodraft'));
+alter table public.leagues add column if not exists draft_order text check (draft_order in ('snake', 'rotating', 'fixed'));
+alter table public.leagues add column if not exists autodraft_start_at timestamptz;
+alter table public.leagues add column if not exists trade_mode text not null default 'waiver' check (trade_mode in ('no_trades', 'waiver'));
+alter table public.leagues add column if not exists waiver_process_day text default 'wed_2359' check (waiver_process_day in ('sun_2359', 'mon_2359', 'tue_2359', 'wed_2359', 'thu_2359', 'fri_2359', 'sat_2359'));
+alter table public.leagues add column if not exists waiver_priority text default 'reverse_snake' check (waiver_priority in ('reverse_snake', 'reverse_rotating', 'reverse_fixed'));
+alter table public.leagues add column if not exists league_icon text not null default 'star' check (league_icon in (
+    'books', 'butterfly', 'coins', 'confetti', 'crown', 'dice-three', 'evergreen-tree', 'exam',
+    'fast-forward', 'fire', 'gift', 'globe', 'graduation-cap', 'hand-peace', 'magic-wand', 'medal',
+    'moon-stars', 'music-notes', 'palette', 'paw-print', 'shooting-star', 'snowflake', 'sparkle',
+    'star', 'student', 'trophy', 'unicorn', 'yin-yang'
+));
 
 create index if not exists idx_leagues_join_code on public.leagues(join_code);
 
