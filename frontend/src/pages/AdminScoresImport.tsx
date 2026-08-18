@@ -1,10 +1,10 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { api, Gymnast } from '../lib/api';
+import { MeetLocation } from '../lib/scoreMetrics';
 import {
     EVENT_LABELS,
     EventCode,
     FlaggedRow,
-    MeetLocation,
     ParsedScoreRow,
     RowOutcome,
     approveFlaggedRow,

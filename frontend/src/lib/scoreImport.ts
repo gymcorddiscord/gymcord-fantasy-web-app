@@ -5,6 +5,7 @@
  */
 import { supabase } from './supabase';
 import { Gymnast } from './api';
+import { MeetLocation } from './scoreMetrics';
 
 export type EventCode = 'vault' | 'bars' | 'beam' | 'floor';
 
@@ -73,11 +74,6 @@ export function parseCsv(text: string): string[][] {
 
     return rows.filter((r) => !(r.length === 1 && r[0].trim() === ''));
 }
-
-// 'home' | 'away' | null (unknown) — feeds individual NQS (PRD 10.9), which
-// needs each score tagged by meet location. null is expected for most rows
-// today since this is new; it's optional, not a validation failure.
-export type MeetLocation = 'home' | 'away';
 
 export interface ParsedScoreRow {
     rowNumber: number; // 1-based, counting from the first data row (header excluded)

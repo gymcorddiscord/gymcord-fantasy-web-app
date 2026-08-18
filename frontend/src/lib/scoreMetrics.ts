@@ -1,8 +1,13 @@
 /**
- * Score-metrics computation layer — Average / Median / Most Recent / High,
- * computed live from raw `scores` rows rather than the flat vault_avg /
- * season_average columns on `gymnasts` (those are a one-time import
- * snapshot and won't reflect new weeks as they're added).
+ * Score-metrics computation layer — Average / Median / Most Recent / High /
+ * Average-Home / Average-Away / Rolling-3-Meet-Average, computed live from
+ * raw `scores` rows rather than the flat vault_avg / season_average columns
+ * on `gymnasts` (those are a one-time import snapshot and won't reflect new
+ * weeks as they're added).
+ *
+ * Average-Home/Away are filtered by `scores.location`, added 2026-08-18
+ * alongside that column — expect sparse/empty results until enough new
+ * scores carry it (see below).
  *
  * NQS is intentionally not computed here yet. Individual NQS (PRD 10.9) is
  * actually a per-gymnast formula — 3 highest home + 3 highest away scores
@@ -16,8 +21,9 @@
  */
 
 export type Category = 'vault' | 'bars' | 'beam' | 'floor' | 'aa';
-export type Metric = 'average' | 'median' | 'mostRecent' | 'high';
+export type Metric = 'average' | 'median' | 'mostRecent' | 'high' | 'avgHome' | 'avgAway' | 'rolling3';
 export type MetricSet = Record<Metric, number | null>;
+export type MeetLocation = 'home' | 'away';
 
 export interface ScoreRow {
     event: 'vault' | 'bars' | 'beam' | 'floor';
@@ -26,7 +32,12 @@ export interface ScoreRow {
     // Null for legacy pre-CSV-import rows (see db/schema.sql) — only rows
     // written through the Scores Import flow carry a meet_date.
     meetDate: string | null;
+    // Null for the vast majority of rows today — location only exists as
+    // of 2026-08-18 and isn't backfilled on historical scores.
+    location: MeetLocation | null;
 }
+
+type InternalRow = { weekNumber: number; score: number; meetDate?: string | null; location?: MeetLocation | null };
 
 function round3(n: number): number {
     return Math.round(n * 1000) / 1000;
@@ -51,7 +62,7 @@ function high(scores: number[]): number | null {
 // Highest week_number wins. Two meets in the same week are a real case, so
 // meet_date breaks the tie; without one (legacy rows) the first row is kept
 // rather than the last, so the result doesn't depend on row arrival order.
-function mostRecent(rows: { weekNumber: number; score: number; meetDate?: string | null }[]): number | null {
+function mostRecent(rows: InternalRow[]): number | null {
     if (rows.length === 0) return null;
     let best = rows[0];
     for (const row of rows) {
@@ -61,12 +72,32 @@ function mostRecent(rows: { weekNumber: number; score: number; meetDate?: string
     return best.score;
 }
 
-function metricsFromScores(rows: { weekNumber: number; score: number; meetDate?: string | null }[]): MetricSet {
+// Same recency ordering as mostRecent(), but averages the N most recent
+// instead of taking just the single latest — a steadier "recent form"
+// signal than Most Recent alone, more current than a full-season Average.
+function rollingAverage(rows: InternalRow[], n: number): number | null {
+    if (rows.length === 0) return null;
+    const sorted = [...rows].sort((a, b) => {
+        if (a.weekNumber !== b.weekNumber) return b.weekNumber - a.weekNumber;
+        if (a.meetDate && b.meetDate) return b.meetDate.localeCompare(a.meetDate);
+        return 0;
+    });
+    return average(sorted.slice(0, n).map((r) => r.score));
+}
+
+function averageByLocation(rows: InternalRow[], location: MeetLocation): number | null {
+    return average(rows.filter((r) => r.location === location).map((r) => r.score));
+}
+
+function metricsFromScores(rows: InternalRow[]): MetricSet {
     return {
         average: average(rows.map((r) => r.score)),
         median: median(rows.map((r) => r.score)),
         mostRecent: mostRecent(rows),
-        high: high(rows.map((r) => r.score))
+        high: high(rows.map((r) => r.score)),
+        avgHome: averageByLocation(rows, 'home'),
+        avgAway: averageByLocation(rows, 'away'),
+        rolling3: rollingAverage(rows, 3)
     };
 }
 
@@ -74,21 +105,25 @@ function metricsFromScores(rows: { weekNumber: number; score: number; meetDate?:
 // competed all four in that meet, matching how NCAA all-around scoring
 // actually works. Rows with no meet_date can't be grouped into a meet, so
 // they're excluded from AA (they still count toward the other 4 categories).
-function aaScoresByMeet(rows: ScoreRow[]): { weekNumber: number; score: number; meetDate: string }[] {
-    const byMeet = new Map<string, Partial<Record<ScoreRow['event'], number>> & { weekNumber: number }>();
+// location is taken from whichever of the four rows sets it first — all
+// four events at one meet share the same venue, so any of them agrees.
+function aaScoresByMeet(rows: ScoreRow[]): InternalRow[] {
+    const byMeet = new Map<string, Partial<Record<ScoreRow['event'], number>> & { weekNumber: number; location: MeetLocation | null }>();
     for (const row of rows) {
         if (!row.meetDate) continue;
-        const entry = byMeet.get(row.meetDate) ?? { weekNumber: row.weekNumber };
+        const entry = byMeet.get(row.meetDate) ?? { weekNumber: row.weekNumber, location: row.location };
         entry[row.event] = row.score;
+        if (!entry.location && row.location) entry.location = row.location;
         byMeet.set(row.meetDate, entry);
     }
-    const totals: { weekNumber: number; score: number; meetDate: string }[] = [];
+    const totals: InternalRow[] = [];
     for (const [meetDate, entry] of byMeet) {
         if (entry.vault != null && entry.bars != null && entry.beam != null && entry.floor != null) {
             totals.push({
                 weekNumber: entry.weekNumber,
                 score: round3(entry.vault + entry.bars + entry.beam + entry.floor),
-                meetDate
+                meetDate,
+                location: entry.location
             });
         }
     }
@@ -96,11 +131,11 @@ function aaScoresByMeet(rows: ScoreRow[]): { weekNumber: number; score: number; 
 }
 
 export function computeScoreMetrics(rows: ScoreRow[]): Record<Category, MetricSet> {
-    const byEvent: Record<ScoreRow['event'], { weekNumber: number; score: number; meetDate: string | null }[]> = {
+    const byEvent: Record<ScoreRow['event'], InternalRow[]> = {
         vault: [], bars: [], beam: [], floor: []
     };
     for (const row of rows) {
-        byEvent[row.event].push({ weekNumber: row.weekNumber, score: row.score, meetDate: row.meetDate });
+        byEvent[row.event].push({ weekNumber: row.weekNumber, score: row.score, meetDate: row.meetDate, location: row.location });
     }
     return {
         vault: metricsFromScores(byEvent.vault),

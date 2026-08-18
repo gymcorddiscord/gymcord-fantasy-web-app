@@ -371,10 +371,11 @@ export const api = {
         return result;
     },
 
-    // Every metric (Average/Median/Most Recent/High) x category
-    // (VT/UB/BB/FX/AA) for a batch of gymnasts, computed live from the
-    // `scores` table rather than the flat *_avg snapshot columns. NQS is not
-    // included — see the note atop scoreMetrics.ts.
+    // Every metric (Average/Median/Most Recent/High/Avg-Home/Avg-Away/
+    // Rolling-3) x category (VT/UB/BB/FX/AA) for a batch of gymnasts,
+    // computed live from the `scores` table rather than the flat *_avg
+    // snapshot columns. NQS is not included — see the note atop
+    // scoreMetrics.ts.
     scoreMetrics: async (
         gymnastIds: number[],
         seasonYear = 2026
@@ -388,7 +389,7 @@ export const api = {
         for (let from = 0; ; from += PAGE_SIZE) {
             const { data, error } = await supabase
                 .from('scores')
-                .select('gymnast_id, event, week_number, score, meet_date')
+                .select('gymnast_id, event, week_number, score, meet_date, location')
                 .eq('season_year', seasonYear)
                 .in('gymnast_id', gymnastIds)
                 // Explicit order is required, not cosmetic: paging with
@@ -405,7 +406,7 @@ export const api = {
         const byGymnast = new Map<number, ScoreRow[]>();
         for (const row of rows) {
             const list = byGymnast.get(row.gymnast_id) ?? [];
-            list.push({ event: row.event, weekNumber: row.week_number, score: Number(row.score), meetDate: row.meet_date });
+            list.push({ event: row.event, weekNumber: row.week_number, score: Number(row.score), meetDate: row.meet_date, location: row.location });
             byGymnast.set(row.gymnast_id, list);
         }
 

@@ -489,6 +489,112 @@ create policy "Users can remove gymnasts from their own team roster"
         and league_members.user_id = auth.uid()
     ));
 
+-- ---------- Lineup Selections ----------
+-- Presence-based, same convention as roster_gymnasts: a row means "this
+-- gymnast is up for this event this week" — selecting inserts a row,
+-- deselecting deletes it. No boolean flag to keep in sync.
+create table if not exists public.lineup_selections (
+    id                 bigint generated always as identity primary key,
+    league_member_id   bigint not null references public.league_members(id) on delete cascade,
+    league_id          bigint not null references public.leagues(id) on delete cascade,
+    gymnast_id         bigint not null references public.gymnasts(id) on delete cascade,
+    event              text not null check (event in ('vault','bars','beam','floor')),
+    season_year        integer not null,
+    week_number        integer not null,
+    created_at         timestamptz not null default now()
+);
+
+create unique index if not exists uq_lineup_selections_slot
+    on public.lineup_selections (league_member_id, gymnast_id, event, season_year, week_number);
+create index if not exists idx_lineup_selections_league_member_id on public.lineup_selections(league_member_id);
+create index if not exists idx_lineup_selections_league_id on public.lineup_selections(league_id);
+
+alter table public.lineup_selections enable row level security;
+
+create policy "Lineup selections are publicly readable"
+    on public.lineup_selections for select
+    using (true);
+
+create policy "Users can select gymnasts for their own team's lineup"
+    on public.lineup_selections for insert
+    with check (exists (
+        select 1 from public.league_members
+        where league_members.id = lineup_selections.league_member_id
+        and league_members.user_id = auth.uid()
+    ));
+
+create policy "Users can deselect gymnasts from their own team's lineup"
+    on public.lineup_selections for delete
+    using (exists (
+        select 1 from public.league_members
+        where league_members.id = lineup_selections.league_member_id
+        and league_members.user_id = auth.uid()
+    ));
+
+-- ---------- Gymnast Meet Schedule ----------
+-- One row per scheduled meet for a gymnast in a given week (Lineups Page
+-- Requirements §0.2). Bye and double-meet are derived from row count, not
+-- stored flags: 0 rows this week = bye, 2 rows = double meet. Admin-curated
+-- (same access pattern as scores), since nothing else populates this.
+create table if not exists public.gymnast_meet_schedule (
+    id             bigint generated always as identity primary key,
+    gymnast_id     bigint not null references public.gymnasts(id) on delete cascade,
+    season_year    integer not null,
+    week_number    integer not null,
+    meet_date      date not null,
+    meet_time      text,
+    opponent       text,
+    location       text check (location in ('home','away')),
+    meet_format    text check (meet_format in ('dual','tri','quad')),
+    created_at     timestamptz not null default now()
+);
+
+create index if not exists idx_gymnast_meet_schedule_gymnast_week
+    on public.gymnast_meet_schedule(gymnast_id, season_year, week_number);
+
+alter table public.gymnast_meet_schedule enable row level security;
+
+create policy "Gymnast meet schedule is publicly readable"
+    on public.gymnast_meet_schedule for select
+    using (true);
+
+create policy "Admins can insert gymnast meet schedule rows"
+    on public.gymnast_meet_schedule for insert
+    with check (exists (
+        select 1 from public.profiles
+        where profiles.id = auth.uid() and profiles.role = 'admin'
+    ));
+
+create policy "Admins can update gymnast meet schedule rows"
+    on public.gymnast_meet_schedule for update
+    using (exists (
+        select 1 from public.profiles
+        where profiles.id = auth.uid() and profiles.role = 'admin'
+    ));
+
+create policy "Admins can delete gymnast meet schedule rows"
+    on public.gymnast_meet_schedule for delete
+    using (exists (
+        select 1 from public.profiles
+        where profiles.id = auth.uid() and profiles.role = 'admin'
+    ));
+
+-- ---------- Gymnast injury status & school logos (Lineups Page Requirements §0.3-0.4) ----------
+-- Current-state, not week-scoped — "whatever the admin has most recently
+-- published," per the PRD. Admin-curated alongside gymnast_meet_schedule.
+alter table public.gymnasts add column if not exists injury_status text not null default 'healthy'
+    check (injury_status in ('healthy', 'short_term', 'long_term'));
+alter table public.gymnasts add column if not exists injury_note text;
+
+create policy "Admins can update gymnasts"
+    on public.gymnasts for update
+    using (exists (
+        select 1 from public.profiles
+        where profiles.id = auth.uid() and profiles.role = 'admin'
+    ));
+
+alter table public.ncaa_teams add column if not exists logo_url text;
+
 -- =============================================================
 -- Future tables (Trades, Waivers, Draft, etc.) will be added in
 -- later migrations.
