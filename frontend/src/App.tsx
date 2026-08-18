@@ -64,19 +64,20 @@ function RequireAdmin({ children }: { children: ReactElement }) {
     return children;
 }
 
-// After Discord OAuth, Supabase redirects to the bare site root (see
-// AuthContext.signInWithDiscord) rather than a specific route. Once that
-// lands here and a session is picked up, send signed-in users straight to
-// the Lineups page for their first league — auto-joining them into the QA
-// Sandbox League first if they don't have any league yet, so there's
-// always somewhere real to land (see QA_SANDBOX_LEAGUE_CODE above).
-function RedirectIfAuthed({ children }: { children: ReactElement }) {
-    const { user, loading } = useAuth();
-    const [target, setTarget] = useState<string | null>(null);
+// Resolves where a signed-in user's "default view" should be: their first
+// league's Lineups page, auto-joining them into the QA Sandbox League
+// first if they don't have any league yet (see QA_SANDBOX_LEAGUE_CODE
+// above). `target` is `undefined` while still resolving, `null` once
+// resolved if there's genuinely nowhere better to send them (auto-join
+// failed) — callers must treat `null` as "show the real dashboard, don't
+// redirect again," or a failed lookup loops forever between /home and here.
+function useDefaultLeagueTarget(): string | null | undefined {
+    const { user } = useAuth();
+    const [target, setTarget] = useState<string | null | undefined>(undefined);
 
     useEffect(() => {
         if (!user) {
-            setTarget(null);
+            setTarget(undefined);
             return;
         }
         let cancelled = false;
@@ -101,21 +102,45 @@ function RedirectIfAuthed({ children }: { children: ReactElement }) {
                 }
             } catch {
                 // Auto-join failed (name collision, QATEST missing, network) —
-                // fall back to the normal dashboard rather than getting stuck.
+                // fall back to the real dashboard rather than getting stuck.
             }
-            if (!cancelled) setTarget('/home');
+            if (!cancelled) setTarget(null);
         })();
         return () => {
             cancelled = true;
         };
     }, [user]);
 
+    return target;
+}
+
+// After Discord OAuth, Supabase redirects to the bare site root (see
+// AuthContext.signInWithDiscord) rather than a specific route. Once that
+// lands here and a session is picked up, send signed-in users on to their
+// default view (see useDefaultLeagueTarget) — /home as the final fallback
+// only, never as a redirect target of its own (see HomeRoute below).
+function RedirectIfAuthed({ children }: { children: ReactElement }) {
+    const { user, loading } = useAuth();
+    const target = useDefaultLeagueTarget();
+
     if (loading) return <PageLoader />;
     if (user) {
-        if (!target) return <PageLoader />;
-        return <Navigate to={target} replace />;
+        if (target === undefined) return <PageLoader />;
+        return <Navigate to={target ?? '/home'} replace />;
     }
     return children;
+}
+
+// /home itself (reachable via the logo, the Draft tab, and direct links)
+// redirects the same way — to whichever league's Lineups page a user
+// should land on. Only renders the real Home dashboard once resolution
+// comes back with nowhere better to go, so this can never loop with the
+// '/home' fallback in RedirectIfAuthed above.
+function HomeRoute() {
+    const target = useDefaultLeagueTarget();
+    if (target === undefined) return <PageLoader />;
+    if (target) return <Navigate to={target} replace />;
+    return <Home />;
 }
 
 function Shell() {
@@ -155,7 +180,7 @@ function Shell() {
                         path="/home"
                         element={
                             <RequireAuth>
-                                <Home />
+                                <HomeRoute />
                             </RequireAuth>
                         }
                     />
