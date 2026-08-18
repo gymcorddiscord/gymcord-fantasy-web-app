@@ -13,6 +13,7 @@ import { CreateLeague } from './pages/CreateLeague';
 import { JoinLeague } from './pages/JoinLeague';
 import { ViewLeague } from './pages/ViewLeague';
 import { AddGymnasts } from './pages/AddGymnasts';
+import { Lineups } from './pages/Lineups';
 import { Credits } from './pages/Credits';
 import { AdminScoresImport } from './pages/AdminScoresImport';
 import { takePendingJoinCode } from './lib/pendingJoin';
@@ -148,6 +149,14 @@ function Shell() {
                         element={
                             <RequireAuth>
                                 <AddGymnasts />
+                            </RequireAuth>
+                        }
+                    />
+                    <Route
+                        path="/leagues/:membershipId/lineups"
+                        element={
+                            <RequireAuth>
+                                <Lineups />
                             </RequireAuth>
                         }
                     />

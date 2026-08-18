@@ -23,7 +23,10 @@ export interface NcaaTeam {
     conference: string | null;
     color: string | null;
     division: Division | null;
+    logoUrl: string | null;
 }
+
+export type InjuryStatus = 'healthy' | 'short_term' | 'long_term';
 
 export interface Gymnast {
     id: number;
@@ -54,6 +57,8 @@ export interface Gymnast {
     };
     aaNqs: number | null;
     seasonAverage: number | null;
+    injuryStatus: InjuryStatus;
+    injuryNote: string | null;
     team: NcaaTeam;
 }
 
@@ -152,7 +157,8 @@ function toNcaaTeam(row: any): NcaaTeam {
         shortName: row.short_name,
         conference: row.conference,
         color: row.primary_color,
-        division: row.division
+        division: row.division,
+        logoUrl: row.logo_url
     };
 }
 
@@ -192,7 +198,8 @@ const GYMNAST_SELECT = `
     competes_vault, competes_bars, competes_beam, competes_floor, is_all_around,
     vault_avg, bars_avg, beam_avg, floor_avg, season_average,
     vault_nqs, bars_nqs, beam_nqs, floor_nqs, aa_nqs,
-    ncaa_teams!inner ( id, slug, name, short_name, conference, primary_color, division )
+    injury_status, injury_note,
+    ncaa_teams!inner ( id, slug, name, short_name, conference, primary_color, division, logo_url )
 `;
 
 function toGymnast(g: any): Gymnast {
@@ -222,6 +229,8 @@ function toGymnast(g: any): Gymnast {
         },
         aaNqs: g.aa_nqs,
         seasonAverage: g.season_average,
+        injuryStatus: g.injury_status,
+        injuryNote: g.injury_note,
         team: toNcaaTeam(g.ncaa_teams)
     };
 }

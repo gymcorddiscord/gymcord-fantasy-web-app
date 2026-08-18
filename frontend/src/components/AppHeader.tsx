@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../lib/AuthContext';
 import { applyTheme, getInitialTheme, Theme } from '../lib/theme';
 import { api, LeagueMembership } from '../lib/api';
+import { CURRENT_WEEK } from '../lib/lineups';
 import { TeamBadge } from './TeamBadge';
 
 type NavTab = 'draft' | 'gymnasts';
@@ -118,6 +119,33 @@ export function AppHeader() {
                 phase="preseason"
                 activeTab="gymnasts"
                 onTabChange={onPreseasonTabChange}
+                theme={theme}
+                onThemeToggle={setTheme}
+                onLogOut={onLogout}
+            />
+        );
+    }
+
+    // Lineups is the first "season" phase page — real week prev/next comes
+    // in a later pass (see lineups-page-requirements.md §8); for now the
+    // navigator shows the mock current week as a static, non-advancing label.
+    const lineupsMatch = location.pathname.match(/^\/leagues\/(\d+)\/lineups/);
+    if (lineupsMatch) {
+        return (
+            <DSAppHeader
+                logoHref="#/home"
+                phase="season"
+                activeTab="lineups"
+                onTabChange={(tab) => {
+                    if (tab === 'lineups') navigate(`/leagues/${lineupsMatch[1]}/lineups`);
+                }}
+                weekLabel={`Week ${CURRENT_WEEK}`}
+                weekStatusLabel="CURRENT"
+                prevWeekDisabled
+                nextWeekDisabled
+                leagues={leagueOptions}
+                activeLeagueId={lineupsMatch[1]}
+                onLeagueChange={(id) => navigate(`/leagues/${id}`)}
                 theme={theme}
                 onThemeToggle={setTheme}
                 onLogOut={onLogout}

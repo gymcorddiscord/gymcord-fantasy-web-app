@@ -205,6 +205,9 @@ export function ViewLeague() {
                             >
                                 Build Your Roster ({rosterRows.length}/{membership.league.rosterSize})
                             </Link>
+                            <Link to={`/leagues/${membership.id}/lineups`} className="gds-button gds-button--secondary">
+                                Set Lineups
+                            </Link>
                             <Button variant="secondary" onClick={copyInviteLink}>
                                 {linkCopied ? 'Copied!' : 'Copy Invite Link'}
                             </Button>
