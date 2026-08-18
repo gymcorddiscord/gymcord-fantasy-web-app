@@ -114,15 +114,17 @@ export function AppHeader() {
 
     if (location.pathname.startsWith('/gymnasts')) {
         return (
-            <DSAppHeader
-                logoHref="#/home"
-                phase="preseason"
-                activeTab="gymnasts"
-                onTabChange={onPreseasonTabChange}
-                theme={theme}
-                onThemeToggle={setTheme}
-                onLogOut={onLogout}
-            />
+            <div className="app-header--authed">
+                <DSAppHeader
+                    logoHref="#/home"
+                    phase="preseason"
+                    activeTab="gymnasts"
+                    onTabChange={onPreseasonTabChange}
+                    theme={theme}
+                    onThemeToggle={setTheme}
+                    onLogOut={onLogout}
+                />
+            </div>
         );
     }
 
@@ -131,26 +133,28 @@ export function AppHeader() {
         const lineupsMembershipId = lineupsMatch[1];
         const viewedWeek = lineupsMatch[2] ? Number(lineupsMatch[2]) : CURRENT_WEEK;
         return (
-            <DSAppHeader
-                logoHref="#/home"
-                phase="season"
-                activeTab="lineups"
-                onTabChange={(tab) => {
-                    if (tab === 'lineups') navigate(`/leagues/${lineupsMembershipId}/lineups/${viewedWeek}`);
-                }}
-                weekLabel={`Week ${viewedWeek}`}
-                weekStatusLabel={viewedWeek === CURRENT_WEEK ? 'CURRENT' : viewedWeek < CURRENT_WEEK ? 'LOCKED' : 'UPCOMING'}
-                onPrevWeek={() => navigate(`/leagues/${lineupsMembershipId}/lineups/${viewedWeek - 1}`)}
-                onNextWeek={() => navigate(`/leagues/${lineupsMembershipId}/lineups/${viewedWeek + 1}`)}
-                prevWeekDisabled={viewedWeek <= 1}
-                nextWeekDisabled={viewedWeek >= SEASON_END_WEEK}
-                leagues={leagueOptions}
-                activeLeagueId={lineupsMembershipId}
-                onLeagueChange={(id) => navigate(`/leagues/${id}`)}
-                theme={theme}
-                onThemeToggle={setTheme}
-                onLogOut={onLogout}
-            />
+            <div className="app-header--authed">
+                <DSAppHeader
+                    logoHref="#/home"
+                    phase="season"
+                    activeTab="lineups"
+                    onTabChange={(tab) => {
+                        if (tab === 'lineups') navigate(`/leagues/${lineupsMembershipId}/lineups/${viewedWeek}`);
+                    }}
+                    weekLabel={`Week ${viewedWeek}`}
+                    weekStatusLabel={viewedWeek === CURRENT_WEEK ? 'CURRENT' : viewedWeek < CURRENT_WEEK ? 'LOCKED' : 'UPCOMING'}
+                    onPrevWeek={() => navigate(`/leagues/${lineupsMembershipId}/lineups/${viewedWeek - 1}`)}
+                    onNextWeek={() => navigate(`/leagues/${lineupsMembershipId}/lineups/${viewedWeek + 1}`)}
+                    prevWeekDisabled={viewedWeek <= 1}
+                    nextWeekDisabled={viewedWeek >= SEASON_END_WEEK}
+                    leagues={leagueOptions}
+                    activeLeagueId={lineupsMembershipId}
+                    onLeagueChange={(id) => navigate(`/leagues/${id}`)}
+                    theme={theme}
+                    onThemeToggle={setTheme}
+                    onLogOut={onLogout}
+                />
+            </div>
         );
     }
 
@@ -160,18 +164,20 @@ export function AppHeader() {
     const viewLeagueMatch = location.pathname.match(/^\/leagues\/(\d+)$/);
     if (viewLeagueMatch) {
         return (
-            <DSAppHeader
-                logoHref="#/home"
-                phase="preseason"
-                activeTab="draft"
-                onTabChange={onPreseasonTabChange}
-                leagues={leagueOptions}
-                activeLeagueId={viewLeagueMatch[1]}
-                onLeagueChange={(id) => navigate(`/leagues/${id}`)}
-                theme={theme}
-                onThemeToggle={setTheme}
-                onLogOut={onLogout}
-            />
+            <div className="app-header--authed">
+                <DSAppHeader
+                    logoHref="#/home"
+                    phase="preseason"
+                    activeTab="draft"
+                    onTabChange={onPreseasonTabChange}
+                    leagues={leagueOptions}
+                    activeLeagueId={viewLeagueMatch[1]}
+                    onLeagueChange={(id) => navigate(`/leagues/${id}`)}
+                    theme={theme}
+                    onThemeToggle={setTheme}
+                    onLogOut={onLogout}
+                />
+            </div>
         );
     }
 
@@ -182,72 +188,80 @@ export function AppHeader() {
     const isLeagueFlowRoute = /^\/leagues\/(new|\d+\/roster)/.test(location.pathname);
     if (location.pathname.startsWith('/join') || isLeagueFlowRoute) {
         return (
-            <DSAppHeader
-                logoHref="#/home"
-                phase="preseason"
-                activeTab="draft"
-                onTabChange={onPreseasonTabChange}
-                theme={theme}
-                onThemeToggle={setTheme}
-                onLogOut={onLogout}
-            />
+            <div className="app-header--authed">
+                <DSAppHeader
+                    logoHref="#/home"
+                    phase="preseason"
+                    activeTab="draft"
+                    onTabChange={onPreseasonTabChange}
+                    theme={theme}
+                    onThemeToggle={setTheme}
+                    onLogOut={onLogout}
+                />
+            </div>
         );
     }
 
     if (location.pathname.startsWith('/credits')) {
-        return <DSAppHeader logoHref="#/home" phase="standard" theme={theme} onThemeToggle={setTheme} onLogOut={onLogout} />;
+        return (
+            <div className="app-header--authed">
+                <DSAppHeader logoHref="#/home" phase="standard" theme={theme} onThemeToggle={setTheme} onLogOut={onLogout} />
+            </div>
+        );
     }
 
     const activeTab = NAV_TABS.find((t) => location.pathname.startsWith(TAB_PATHS[t.value]))?.value ?? NAV_TABS[0].value;
 
     return (
-        <header className="gds-app-header">
-            <div className="gds-app-header__row">
-                <Link to="/home" className="gds-app-header__logo-link">
-                    <Logo />
-                </Link>
-                {leagueOptions.length > 0 && (
-                    <LeagueSwitcher leagues={leagueOptions} activeLeagueId={null} onChange={(id) => navigate(`/leagues/${id}`)} />
-                )}
-                <div className="gds-app-header__tabs app-header-tabs--pushed">
-                    <SegmentedToggle size="lg" value={activeTab} onChange={(tab) => navigate(TAB_PATHS[tab])} options={NAV_TABS} />
-                </div>
-                <div className="gds-app-header__actions">
-                    <ThemeToggle theme={theme} onToggle={setTheme} />
-                    <div className="gds-dropdown" ref={accountRef}>
-                        <button
-                            type="button"
-                            className="gds-app-header__account"
-                            aria-label="Account"
-                            aria-expanded={accountMenuOpen}
-                            onClick={() => setAccountMenuOpen((o) => !o)}
-                        >
-                            <UserCircleIcon size={26} />
-                        </button>
-                        {accountMenuOpen ? (
-                            <div className="gds-dropdown__menu gds-app-header__account-menu" role="menu">
-                                <div className="app-header-account-name">{user.displayName}</div>
-                                {user.role === 'admin' && (
-                                    <button
-                                        type="button"
-                                        role="menuitem"
-                                        className="gds-dropdown__item"
-                                        onClick={() => {
-                                            setAccountMenuOpen(false);
-                                            navigate('/admin/scores-import');
-                                        }}
-                                    >
-                                        Scores Import
+        <div className="app-header--authed">
+            <header className="gds-app-header">
+                <div className="gds-app-header__row">
+                    <Link to="/home" className="gds-app-header__logo-link">
+                        <Logo />
+                    </Link>
+                    {leagueOptions.length > 0 && (
+                        <LeagueSwitcher leagues={leagueOptions} activeLeagueId={null} onChange={(id) => navigate(`/leagues/${id}`)} />
+                    )}
+                    <div className="gds-app-header__tabs app-header-tabs--pushed">
+                        <SegmentedToggle size="lg" value={activeTab} onChange={(tab) => navigate(TAB_PATHS[tab])} options={NAV_TABS} />
+                    </div>
+                    <div className="gds-app-header__actions">
+                        <ThemeToggle theme={theme} onToggle={setTheme} />
+                        <div className="gds-dropdown" ref={accountRef}>
+                            <button
+                                type="button"
+                                className="gds-app-header__account"
+                                aria-label="Account"
+                                aria-expanded={accountMenuOpen}
+                                onClick={() => setAccountMenuOpen((o) => !o)}
+                            >
+                                <UserCircleIcon size={26} />
+                            </button>
+                            {accountMenuOpen ? (
+                                <div className="gds-dropdown__menu gds-app-header__account-menu" role="menu">
+                                    <div className="app-header-account-name">{user.displayName}</div>
+                                    {user.role === 'admin' && (
+                                        <button
+                                            type="button"
+                                            role="menuitem"
+                                            className="gds-dropdown__item"
+                                            onClick={() => {
+                                                setAccountMenuOpen(false);
+                                                navigate('/admin/scores-import');
+                                            }}
+                                        >
+                                            Scores Import
+                                        </button>
+                                    )}
+                                    <button type="button" role="menuitem" className="gds-dropdown__item" onClick={onLogout}>
+                                        Log out
                                     </button>
-                                )}
-                                <button type="button" role="menuitem" className="gds-dropdown__item" onClick={onLogout}>
-                                    Log out
-                                </button>
-                            </div>
-                        ) : null}
+                                </div>
+                            ) : null}
+                        </div>
                     </div>
                 </div>
-            </div>
-        </header>
+            </header>
+        </div>
     );
 }

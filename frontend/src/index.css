@@ -127,6 +127,13 @@ input, select, textarea {
 .app-header-tabs--pushed {
     margin-left: auto;
 }
+/* Once signed in, the header's job is navigation, not branding — the
+   wordmark next to the logo is dropped so the logo + league switcher +
+   tabs + theme toggle + account icon have room to breathe. Unlike the
+   existing mobile-only wordmark rule below, this applies at every width. */
+.app-header--authed .gds-logo__wordmark {
+    display: none;
+}
 .app-header-account-name {
     padding: 0 12px;
     height: 32px;
@@ -155,6 +162,55 @@ input, select, textarea {
     }
     .gds-app-header__tabs .gds-segmented__item {
         padding: 8px 10px;
+    }
+    /* Nav tab labels collapse to icon-only alongside the league switcher's
+       own icon-only collapse just below — both compete for the same tight
+       row, so both drop their text at the same breakpoint. */
+    .app-header--authed .gds-segmented__item {
+        font-size: 0;
+        gap: 0;
+    }
+    .app-header--authed .gds-segmented__icon {
+        font-size: initial;
+    }
+    /* League switcher: keep the team-color badge (still identifies which
+       league at a glance) and chevron, drop the team/league name text. */
+    .app-header--authed .gds-league-switcher__text {
+        display: none;
+    }
+    /* Week navigator is the single biggest consumer of header width (two
+       36px round arrow buttons + a 90px-min-width label) — shrink the
+       arrows, drop the CURRENT/LOCKED/UPCOMING status word, and let the
+       week number's own (short) width set the label instead of the
+       90px minimum built for desktop. */
+    .app-header--authed .gds-week-nav {
+        gap: 4px;
+    }
+    .app-header--authed .gds-week-nav__arrow {
+        width: 28px;
+        height: 28px;
+    }
+    .app-header--authed .gds-week-nav__label {
+        min-width: 0;
+    }
+    .app-header--authed .gds-week-nav__status {
+        display: none;
+    }
+    /* Even after compacting every cluster (logo, switcher, week nav, tabs,
+       theme toggle, account), five distinct controls plus the CURRENT/
+       account avatar genuinely don't fit inline at 375px without either
+       illegible squishing or wrapping to a second row. Horizontal scroll
+       is the honest fallback — nothing becomes unreachable, it just isn't
+       all visible without a swipe on the very narrowest phones. */
+    .gds-app-header__row {
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+    .gds-app-header__row::-webkit-scrollbar {
+        display: none;
+    }
+    .gds-app-header__row > * {
+        flex-shrink: 0;
     }
 }
 
