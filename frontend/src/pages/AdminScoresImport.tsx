@@ -4,6 +4,7 @@ import {
     EVENT_LABELS,
     EventCode,
     FlaggedRow,
+    MeetLocation,
     ParsedScoreRow,
     RowOutcome,
     approveFlaggedRow,
@@ -66,6 +67,7 @@ function ManualScoreEntry({ gymnasts }: { gymnasts: Gymnast[] }) {
     const [meetDate, setMeetDate] = useState('');
     const [event, setEvent] = useState<EventCode>('vault');
     const [scoreText, setScoreText] = useState('');
+    const [location, setLocation] = useState<MeetLocation | ''>('');
 
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -124,7 +126,8 @@ function ManualScoreEntry({ gymnasts }: { gymnasts: Gymnast[] }) {
                 meetDate,
                 score,
                 meetName: null,
-                opponent: null
+                opponent: null,
+                location: location || null
             });
             setSuccess(`Added ${gymnast.firstName} ${gymnast.lastName} · ${EVENT_LABELS[event]} · ${score.toFixed(3)} (${weekPreview}).`);
             setScoreText('');
@@ -225,6 +228,22 @@ function ManualScoreEntry({ gymnasts }: { gymnasts: Gymnast[] }) {
                             }}
                             disabled={submitting}
                         />
+                    </div>
+                    <div className="form-row" style={{ width: 130 }}>
+                        <label htmlFor="manualLocation">Location</label>
+                        <select
+                            id="manualLocation"
+                            value={location}
+                            onChange={(e) => {
+                                setLocation(e.target.value as MeetLocation | '');
+                                clearFeedback();
+                            }}
+                            disabled={submitting}
+                        >
+                            <option value="">Unknown</option>
+                            <option value="home">Home</option>
+                            <option value="away">Away</option>
+                        </select>
                     </div>
                 </div>
 
@@ -513,8 +532,10 @@ export function AdminScoresImport() {
             <div className="card">
                 <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 0 }}>
                     Required columns: <code>meet_date, gymnast_name, gymnast_school, event, score</code>. Optional:{' '}
-                    <code>meet_name, opponent, exhibition</code>. Event must be VT, UB, BB, or FX. AA rows parse fine but are
-                    excluded (not used for fantasy scoring), same as exhibition rows.
+                    <code>meet_name, opponent, location, exhibition</code>. Event must be VT, UB, BB, or FX. AA rows parse
+                    fine but are excluded (not used for fantasy scoring), same as exhibition rows.{' '}
+                    <code>location</code> must be "home" or "away" if given (leave blank if unknown) — feeds individual NQS
+                    once enough rows have it.
                 </p>
                 <input
                     ref={fileInputRef}

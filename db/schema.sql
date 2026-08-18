@@ -165,12 +165,47 @@ create table if not exists public.leagues (
     season_ending_only     boolean not null default false,
     regular_season_trades  boolean not null default false,
     other_trade_rules      text,
+    theme_text      text,
+    -- Draft/trade/waiver settings from the Create League wizard (CreateLeague.tsx).
+    -- These already existed on the live table — this block just catches
+    -- schema.sql up to match, it was never captured here when they shipped.
+    draft_style         text not null default 'previously_drafted' check (draft_style in ('previously_drafted', 'autodraft')),
+    draft_order         text check (draft_order in ('snake', 'rotating', 'fixed')),
+    autodraft_start_at  timestamptz,
+    trade_mode          text not null default 'waiver' check (trade_mode in ('no_trades', 'waiver')),
+    -- Day+time a waiver window closes, always 11:59 PM on the named day —
+    -- see WAIVER_DAY_OPTIONS in CreateLeague.tsx for the full 7-value set.
+    waiver_process_day  text default 'wed_2359' check (waiver_process_day in ('sun_2359', 'mon_2359', 'tue_2359', 'wed_2359', 'thu_2359', 'fri_2359', 'sat_2359')),
+    waiver_priority     text default 'reverse_snake' check (waiver_priority in ('reverse_snake', 'reverse_rotating', 'reverse_fixed')),
+    league_icon         text not null default 'star' check (league_icon in (
+        'books', 'butterfly', 'coins', 'confetti', 'crown', 'dice-three', 'evergreen-tree', 'exam',
+        'fast-forward', 'fire', 'gift', 'globe', 'graduation-cap', 'hand-peace', 'magic-wand', 'medal',
+        'moon-stars', 'music-notes', 'palette', 'paw-print', 'shooting-star', 'snowflake', 'sparkle',
+        'star', 'student', 'trophy', 'unicorn', 'yin-yang'
+    )),
     created_at      timestamptz not null default now(),
     constraint roster_size_bounds check (roster_size between 5 and 50),
     constraint up_count_bounds check (up_count between 1 and roster_size),
     constraint count_score_bounds check (count_score between 1 and up_count),
     constraint injury_trade_timing_valid check (injury_trade_timing in ('as_it_happens', 'draft'))
 );
+
+-- Backfills the columns above on an already-provisioned database, where the
+-- `create table if not exists` is a no-op — safe to re-run, and a no-op
+-- itself against the live DB, which already has all of these.
+alter table public.leagues add column if not exists theme_text text;
+alter table public.leagues add column if not exists draft_style text not null default 'previously_drafted' check (draft_style in ('previously_drafted', 'autodraft'));
+alter table public.leagues add column if not exists draft_order text check (draft_order in ('snake', 'rotating', 'fixed'));
+alter table public.leagues add column if not exists autodraft_start_at timestamptz;
+alter table public.leagues add column if not exists trade_mode text not null default 'waiver' check (trade_mode in ('no_trades', 'waiver'));
+alter table public.leagues add column if not exists waiver_process_day text default 'wed_2359' check (waiver_process_day in ('sun_2359', 'mon_2359', 'tue_2359', 'wed_2359', 'thu_2359', 'fri_2359', 'sat_2359'));
+alter table public.leagues add column if not exists waiver_priority text default 'reverse_snake' check (waiver_priority in ('reverse_snake', 'reverse_rotating', 'reverse_fixed'));
+alter table public.leagues add column if not exists league_icon text not null default 'star' check (league_icon in (
+    'books', 'butterfly', 'coins', 'confetti', 'crown', 'dice-three', 'evergreen-tree', 'exam',
+    'fast-forward', 'fire', 'gift', 'globe', 'graduation-cap', 'hand-peace', 'magic-wand', 'medal',
+    'moon-stars', 'music-notes', 'palette', 'paw-print', 'shooting-star', 'snowflake', 'sparkle',
+    'star', 'student', 'trophy', 'unicorn', 'yin-yang'
+));
 
 create index if not exists idx_leagues_join_code on public.leagues(join_code);
 
@@ -297,6 +332,7 @@ create table if not exists public.score_import_flagged_rows (
     score                numeric(5,3) not null,
     meet_name            text,
     opponent             text,
+    location             text check (location in ('home','away')),
     reason               text not null check (reason in ('no_gymnast_match', 'possible_duplicate')),
     matched_gymnast_id   bigint references public.gymnasts(id),
     status               text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
@@ -307,6 +343,8 @@ create table if not exists public.score_import_flagged_rows (
 );
 
 create index if not exists idx_score_import_flagged_rows_batch_id on public.score_import_flagged_rows(batch_id);
+
+alter table public.score_import_flagged_rows add column if not exists location text check (location in ('home','away'));
 create index if not exists idx_score_import_flagged_rows_status on public.score_import_flagged_rows(status);
 
 alter table public.score_import_flagged_rows enable row level security;
@@ -346,6 +384,11 @@ create policy "Admins can resolve flagged rows"
 -- and import_batch_id are nullable — the pre-loaded 2026 season data
 -- predates the CSV import flow (see "Scores Import" below) and has no
 -- source meet on file; only rows created through that flow populate them.
+-- location is nullable for the same reason, plus admins may simply not
+-- know it for a given row — it exists so individual NQS (PRD 10.9: 3
+-- highest home + 3 highest away scores, drop the top of those six,
+-- average the rest) becomes computable once enough rows have it, without
+-- retrofitting the historical 2026 data.
 create table if not exists public.scores (
     id              bigint generated always as identity primary key,
     gymnast_id      bigint not null references public.gymnasts(id) on delete cascade,
@@ -356,9 +399,14 @@ create table if not exists public.scores (
     meet_date       date,
     meet_name       text,
     opponent        text,
+    location        text check (location in ('home','away')),
     import_batch_id bigint references public.score_import_batches(id) on delete set null,
     created_at      timestamptz not null default now()
 );
+
+-- Backfills the column on an already-provisioned database, where the
+-- `create table if not exists` above is a no-op — safe to re-run.
+alter table public.scores add column if not exists location text check (location in ('home','away'));
 
 create index if not exists idx_scores_gymnast_id on public.scores(gymnast_id);
 create index if not exists idx_scores_import_batch_id on public.scores(import_batch_id);
