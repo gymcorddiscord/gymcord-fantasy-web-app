@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LoadingIndicator, PlusIcon } from 'gymcord-design-system';
 import { api, LeagueMembership } from '../lib/api';
+import { useModals } from '../lib/ModalsContext';
 
 const GREETINGS = [
     'Bite any cups today?',
@@ -18,6 +19,7 @@ function randomGreeting(): string {
 }
 
 export function Home() {
+    const { openCreateLeague } = useModals();
     const [leagues, setLeagues] = useState<LeagueMembership[] | null>(null);
     const [greeting] = useState(randomGreeting);
 
@@ -46,9 +48,9 @@ export function Home() {
                         <Link to="/join" className="gds-button gds-button--primary">
                             Join a League
                         </Link>
-                        <Link to="/leagues/new" className="gds-button gds-button--secondary">
+                        <button type="button" className="gds-button gds-button--secondary" onClick={openCreateLeague}>
                             Create a League
-                        </Link>
+                        </button>
                     </div>
                 </div>
             ) : (
@@ -59,12 +61,12 @@ export function Home() {
                         </span>
                         Join a League
                     </Link>
-                    <Link to="/leagues/new" className="gds-button gds-button--secondary">
+                    <button type="button" className="gds-button gds-button--secondary" onClick={openCreateLeague}>
                         <span className="gds-button__icon">
                             <PlusIcon size={16} />
                         </span>
                         Create a League
-                    </Link>
+                    </button>
                 </div>
             )}
         </main>

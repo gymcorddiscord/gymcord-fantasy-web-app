@@ -1,6 +1,7 @@
 import { TextField, Heading, Text, CheckIcon } from 'gymcord-design-system';
 import { TEAM_COLOR_SWATCHES } from '../lib/teamColors';
-import { TeamBadge } from './TeamBadge';
+import { LeagueBadge } from './LeagueBadge';
+import { LeagueIcon } from '../lib/api';
 
 const MAX_TEAM_NAME_LENGTH = 30;
 
@@ -11,8 +12,13 @@ export interface TeamIdentityStepProps {
     colors: string[];
     onColorsChange: (colors: string[]) => void;
     leagueName: string;
+    leagueIcon: LeagueIcon;
     teamNameError?: string | null;
     disabled?: boolean;
+    /** Omits the "Set Up Your Team" heading — for reuse in a context (e.g. an
+     *  already-titled Team Settings dialog) where that heading would duplicate
+     *  the surrounding chrome. */
+    hideHeading?: boolean;
 }
 
 /**
@@ -27,8 +33,10 @@ export function TeamIdentityStep({
     colors,
     onColorsChange,
     leagueName,
+    leagueIcon,
     teamNameError,
-    disabled
+    disabled,
+    hideHeading
 }: TeamIdentityStepProps) {
     function toggleSwatch(hex: string) {
         if (disabled) return;
@@ -45,7 +53,7 @@ export function TeamIdentityStep({
 
     return (
         <div className="team-identity">
-            <Heading level={2}>Set Up Your Team</Heading>
+            {hideHeading ? null : <Heading level={2}>Set Up Your Team</Heading>}
 
             <TextField
                 label="Team Name"
@@ -95,7 +103,9 @@ export function TeamIdentityStep({
             </div>
 
             <div className="team-identity__preview">
-                <TeamBadge color1={colors[0] ?? null} color2={colors[1] ?? null} />
+                <span className="team-identity__preview-icon">
+                    <LeagueBadge icon={leagueIcon} color1={colors[0] ?? null} color2={colors[1] ?? null} />
+                </span>
                 <Text tone="secondary">
                     {teamName.trim() ? (
                         <>

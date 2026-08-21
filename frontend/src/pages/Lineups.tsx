@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Lottie } from 'lottie-react';
+import checkSuccessAnimation from '../assets/check-success-animation.json';
 import {
     Button,
     Card,
@@ -14,6 +16,8 @@ import {
     HomeAwayBadge,
     InjuryBadge,
     DotsSixIcon,
+    DownloadSimpleIcon,
+    ShareFatIcon,
     type DropdownOption
 } from 'gymcord-design-system';
 import Sortable from 'sortablejs';
@@ -234,9 +238,11 @@ export function Lineups() {
                 const byId = new Map(rosterForSortRef.current.map((r) => [r.gymnastId, r]));
                 const reordered = orderedIds.map((id) => byId.get(id)).filter((r): r is RosterRow => Boolean(r));
                 setRoster(reordered);
-                api.reorderRoster(membership.leagueId, membership.id, orderedIds).catch(() => {
-                    // Best-effort — a refresh re-fetches the last-saved order if this failed.
-                });
+                api.reorderRoster(membership.leagueId, membership.id, orderedIds)
+                    .then(() => flashSaved())
+                    .catch(() => {
+                        // Best-effort — a refresh re-fetches the last-saved order if this failed.
+                    });
             }
         });
         return () => sortable.destroy();
@@ -323,12 +329,7 @@ export function Lineups() {
     }
 
     return (
-        <main className="page page--wide">
-            <h1 className="page-title">Week {viewedWeek} Lineup</h1>
-            <p className="page-subtitle">
-                {membership.teamName} · {membership.league.name}
-            </p>
-
+        <main className="page page--wide lineup-page">
             {isHistorical && (
                 <div className="lineup-locked-banner">
                     Week {viewedWeek} is locked — showing what actually happened, read-only.
@@ -339,10 +340,21 @@ export function Lineups() {
                 <div className="lineup-controls__left">
                     {!isHistorical && (
                         <>
-                            <Button variant="secondary" disabled={viewedWeek <= 1 || bulkBusy} onClick={() => setImportConfirmOpen(true)}>
+                            <Button
+                                variant="secondary"
+                                icon={<DownloadSimpleIcon size={16} />}
+                                disabled={viewedWeek <= 1 || bulkBusy}
+                                onClick={() => setImportConfirmOpen(true)}
+                            >
                                 Import Last Week
                             </Button>
-                            <Button variant="secondary" disabled={bulkBusy} onClick={() => setPopulateConfirmOpen(true)} title="Apply these lineups to all future weeks">
+                            <Button
+                                variant="secondary"
+                                icon={<ShareFatIcon size={16} />}
+                                disabled={bulkBusy}
+                                onClick={() => setPopulateConfirmOpen(true)}
+                                title="Apply these lineups to all future weeks"
+                            >
                                 Populate All Future Weeks
                             </Button>
                         </>
@@ -362,9 +374,13 @@ export function Lineups() {
                         </Button>
                     )}
                 </div>
+                {justSaved ? (
+                    <div className="lineup-saved-indicator">
+                        <Lottie src={checkSuccessAnimation} autoplay loop={false} className="lineup-saved-indicator__anim" />
+                        Saved
+                    </div>
+                ) : null}
             </div>
-
-            {justSaved ? <div className="lineup-saved-indicator">Saved</div> : null}
 
             <Card elevation="raised">
                 <div className="lineup-matrix-wrap">

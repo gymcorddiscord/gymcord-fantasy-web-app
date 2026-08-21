@@ -2572,12 +2572,12 @@ Method 2: Commissioner Upload (CSV)
   - Balanced competitive leagues  
 - CSV Format (see Section 13.5)
 
-Method 3: Draft System (Future)
+Method 3: Draft System
 
-- Snake draft or auction format  
-- Scheduled draft time  
-- Draft order determination  
-- Out of scope for Phase 1
+- Resolved and shipped in `CreateLeague.tsx` (Draft Settings step) as a **Draft Style** choice between two options:  
+  - **Previously Drafted** — draft already took place live on Discord; league rosters are entered via Method 1/2 above rather than run in-app  
+  - **Autodraft** — waiver wire selects gymnasts in turn order from each team's draft list, at a scheduled date/time (`autodraftStartAt`), with configurable draft order (snake, reverse snake, reverse rotating, reverse fixed)  
+- No live in-app draft room (real-time pick-by-pick UI) exists — that remains future/out of scope
 
 9.0.4 Browsing & Selecting Gymnasts
 

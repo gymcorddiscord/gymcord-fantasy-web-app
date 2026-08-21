@@ -4,6 +4,7 @@ import { Button, Card, Heading, LoadingIndicator, Text, TextField } from 'gymcor
 import { api, League, LeagueMembership, JoinLeagueError } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { setPendingJoinCode } from '../lib/pendingJoin';
+import { useModals } from '../lib/ModalsContext';
 import { StepIndicator } from '../components/StepIndicator';
 import { TeamIdentityStep } from '../components/TeamIdentityStep';
 import { TeamBadge } from '../components/TeamBadge';
@@ -36,6 +37,7 @@ export function JoinLeague() {
     const { code: codeParam } = useParams<{ code: string }>();
     const navigate = useNavigate();
     const { user, signInWithDiscord } = useAuth();
+    const { openRoster } = useModals();
 
     const [step, setStep] = useState<Step>('code');
     const [code, setCode] = useState(codeParam ?? '');
@@ -213,6 +215,7 @@ export function JoinLeague() {
                             colors={colors}
                             onColorsChange={setColors}
                             leagueName={league.name}
+                            leagueIcon={league.leagueIcon}
                             teamNameError={teamNameError}
                             disabled={submitting}
                         />
@@ -243,7 +246,7 @@ export function JoinLeague() {
                             </Text>
                         </div>
                         <div className="wizard-footer wizard-footer--stacked">
-                            <Button onClick={() => navigate(`/leagues/${membership.id}/roster`)} style={{ width: '100%' }}>
+                            <Button onClick={() => openRoster(membership.id)} style={{ width: '100%' }}>
                                 Build Your Roster
                             </Button>
                             <Button variant="secondary" onClick={() => navigate('/home')} style={{ width: '100%' }}>

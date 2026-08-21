@@ -1,9 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Sortable, { MultiDrag } from 'sortablejs';
-import { Button, Card, CloseIcon, Dialog, DotsSixIcon, GearIcon, Heading, LoadingIndicator, Text } from 'gymcord-design-system';
+import {
+    Button,
+    Card,
+    CheckIcon,
+    CloseIcon,
+    Dialog,
+    DotsSixIcon,
+    GearIcon,
+    Heading,
+    InfoIcon,
+    LinkSimpleIcon,
+    LoadingIndicator,
+    Text,
+    Tooltip
+} from 'gymcord-design-system';
 import { api, Gymnast, League, JoinLeagueError, LeagueMembership } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
+import { useModals } from '../lib/ModalsContext';
 import { TeamIdentityStep } from '../components/TeamIdentityStep';
 
 // Multi-item drag (select several rows, then drag any of them together) is
@@ -29,6 +44,7 @@ export function ViewLeague() {
     const { membershipId } = useParams<{ membershipId: string }>();
     const navigate = useNavigate();
     const { user, loading: authLoading } = useAuth();
+    const { rosterMembershipId, openRoster } = useModals();
 
     const [membership, setMembership] = useState<LeagueMembership | null>(null);
     const [loading, setLoading] = useState(true);
@@ -77,6 +93,19 @@ export function ViewLeague() {
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [membershipId, authLoading, user?.id]);
+
+    // Build Your Roster is a modal now (see ModalsContext), not a page this
+    // page unmounts for — so adding gymnasts there doesn't automatically
+    // refresh what's shown here. Re-fetch the roster once that modal closes
+    // (transitions away from being open for this exact team).
+    const rosterModalWasOpenRef = useRef(false);
+    useEffect(() => {
+        const isOpenForThisTeam = membership !== null && rosterMembershipId === membership.id;
+        if (rosterModalWasOpenRef.current && !isOpenForThisTeam && membership) {
+            api.rosterForMember(membership.id).then(setRosterRows);
+        }
+        rosterModalWasOpenRef.current = isOpenForThisTeam;
+    }, [rosterMembershipId, membership]);
 
     function openSettings() {
         if (!membership) return;
@@ -181,39 +210,35 @@ export function ViewLeague() {
     return (
         <main className="page">
             <div className="roster-page">
-                <Card elevation="raised">
-                    <div className="league-summary">
-                        <div className="league-summary__head">
-                            <div className="league-summary__titles">
-                                <Heading level={2}>{membership.teamName}</Heading>
-                                <Text tone="secondary" size="caption">
-                                    {membership.league.name}
-                                </Text>
-                            </div>
+                <div className="league-summary league-summary--bare">
+                    <button
+                        type="button"
+                        className={`gds-button gds-button--${rosterRows.length >= membership.league.rosterSize ? 'secondary' : 'primary'}`}
+                        onClick={() => openRoster(membership.id)}
+                    >
+                        Build Your Roster ({rosterRows.length}/{membership.league.rosterSize})
+                    </button>
+                    <div className="league-summary__icon-actions">
+                        <Tooltip side="bottom" content={linkCopied ? 'Copied!' : 'Copy invite link'}>
+                            <button type="button" className="gear-button" aria-label="Copy invite link" onClick={copyInviteLink}>
+                                {linkCopied ? <CheckIcon size={18} /> : <LinkSimpleIcon size={18} />}
+                            </button>
+                        </Tooltip>
+                        <Tooltip
+                            side="left"
+                            content={`${memberCount} team${memberCount === 1 ? '' : 's'} · ${membership.league.upCount} up, ${membership.league.countScore} count · ${tradeRulesSummary(membership.league)} · Preseason`}
+                        >
+                            <button type="button" className="gear-button" aria-label="League rules">
+                                <InfoIcon size={18} />
+                            </button>
+                        </Tooltip>
+                        <Tooltip side="bottom" content="Team settings">
                             <button type="button" className="gear-button" aria-label="Team settings" onClick={openSettings}>
                                 <GearIcon size={20} />
                             </button>
-                        </div>
-                        <Text tone="secondary" size="caption">
-                            {memberCount} team{memberCount === 1 ? '' : 's'} · {membership.league.upCount} up, {membership.league.countScore}{' '}
-                            count · {tradeRulesSummary(membership.league)} · Preseason
-                        </Text>
-                        <div className="view-league-actions">
-                            <Link
-                                to={`/leagues/${membership.id}/roster`}
-                                className={`gds-button gds-button--${rosterRows.length >= membership.league.rosterSize ? 'secondary' : 'primary'}`}
-                            >
-                                Build Your Roster ({rosterRows.length}/{membership.league.rosterSize})
-                            </Link>
-                            <Link to={`/leagues/${membership.id}/lineups`} className="gds-button gds-button--secondary">
-                                Set Lineups
-                            </Link>
-                            <Button variant="secondary" onClick={copyInviteLink}>
-                                {linkCopied ? 'Copied!' : 'Copy Invite Link'}
-                            </Button>
-                        </div>
+                        </Tooltip>
                     </div>
-                </Card>
+                </div>
 
                 <Card elevation="raised">
                     <div className="wizard-panel">
@@ -271,18 +296,12 @@ export function ViewLeague() {
                         )}
                     </div>
                 </Card>
-
-                <div className="wizard-footer">
-                    <Button variant="secondary" onClick={() => navigate('/home')}>
-                        Back to Dashboard
-                    </Button>
-                </div>
             </div>
 
             <Dialog
                 open={settingsOpen}
                 onClose={() => setSettingsOpen(false)}
-                title="Team Settings"
+                ariaLabel="Team Settings"
                 actions={
                     <Button onClick={handleSaveTeam} disabled={!editTeamName.trim() || editColors.length !== 2 || savingTeam}>
                         {savingTeam ? 'Saving' : justSaved ? 'Saved!' : 'Save Changes'}
@@ -299,8 +318,10 @@ export function ViewLeague() {
                         colors={editColors}
                         onColorsChange={setEditColors}
                         leagueName={membership.league.name}
+                        leagueIcon={membership.league.leagueIcon}
                         teamNameError={editError}
                         disabled={savingTeam}
+                        hideHeading
                     />
                     <div className="danger-zone-inline">
                         <Heading level={3}>Danger Zone</Heading>

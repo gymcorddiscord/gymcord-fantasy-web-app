@@ -109,18 +109,18 @@ input, select, textarea {
     flex-direction: column;
 }
 
-/* The app header itself (logo, nav tabs, theme toggle, account menu) is the
-   Gymcord Design System's AppHeader/LoggedOutHeader, composed here from its
-   exported primitives — see components/AppHeader.tsx. The DS's own
-   .gds-app-header is a full-bleed bar (its background/border span the
-   viewport by design); .gds-app-header__row is the DS's inner content row,
-   which is what we constrain to match the page content width — capping
-   .gds-app-header itself would shrink the bar's background along with the
-   content. These rules also push the nav tabs to the right of the logo on
-   the composed (non-preseason) header — the DS's own header assumes a
-   WeekNavigator sits between them to do that via its auto margins, which
-   that variant doesn't have. */
-.gds-app-header__row {
+/* The app header itself (logo, league switcher, week navigator, theme
+   toggle, account menu — the nav tabs live in a separate pinned bar below,
+   see .gds-m3-navbar__row) is the Gymcord Design System's AppHeader/
+   LoggedOutHeader, composed here from its exported primitives — see
+   components/AppHeader.tsx. Both the DS's .gds-app-header and .gds-m3-navbar
+   are full-bleed bars (their background/border span the viewport by
+   design); .gds-app-header__row and .gds-m3-navbar__row are their inner
+   content rows, which is what we constrain to match the page content width
+   — capping the outer bars themselves would shrink the background along
+   with the content. */
+.gds-app-header__row,
+.gds-m3-navbar__row {
     max-width: 1100px;
     margin: 0 auto;
 }
@@ -160,48 +160,35 @@ input, select, textarea {
     .gds-logo__wordmark {
         display: none;
     }
-    .gds-app-header__tabs .gds-segmented__item {
-        padding: 8px 10px;
-    }
-    /* Nav tab labels collapse to icon-only alongside the league switcher's
-       own icon-only collapse just below — both compete for the same tight
-       row, so both drop their text at the same breakpoint. */
-    .app-header--authed .gds-segmented__item {
-        font-size: 0;
+    /* Nav tab labels collapse to icon-only in the pinned nav bar, alongside
+       the league switcher's own icon-only collapse just below — both
+       compete for tight width at this size, so both drop their text at the
+       same breakpoint. */
+    .gds-m3-tab {
+        padding: 9px;
         gap: 0;
     }
-    .app-header--authed .gds-segmented__icon {
-        font-size: initial;
+    .gds-m3-tab__label {
+        font-size: 0;
     }
     /* League switcher: keep the team-color badge (still identifies which
        league at a glance) and chevron, drop the team/league name text. */
     .app-header--authed .gds-league-switcher__text {
         display: none;
     }
-    /* Week navigator is the single biggest consumer of header width (two
-       36px round arrow buttons + a 90px-min-width label) — shrink the
-       arrows, drop the CURRENT/LOCKED/UPCOMING status word, and let the
-       week number's own (short) width set the label instead of the
-       90px minimum built for desktop. */
-    .app-header--authed .gds-week-nav {
-        gap: 4px;
-    }
-    .app-header--authed .gds-week-nav__arrow {
-        width: 28px;
-        height: 28px;
-    }
-    .app-header--authed .gds-week-nav__label {
-        min-width: 0;
-    }
-    .app-header--authed .gds-week-nav__status {
+    /* Week switcher: drop the CURRENT/LOCKED/UPCOMING status word on its
+       trigger, same idea as the league switcher dropping team/league text
+       just below — the dropdown menu itself still shows full status labels. */
+    .app-header--authed .gds-week-switcher__status {
         display: none;
     }
-    /* Even after compacting every cluster (logo, switcher, week nav, tabs,
-       theme toggle, account), five distinct controls plus the CURRENT/
-       account avatar genuinely don't fit inline at 375px without either
-       illegible squishing or wrapping to a second row. Horizontal scroll
-       is the honest fallback — nothing becomes unreachable, it just isn't
-       all visible without a swipe on the very narrowest phones. */
+    /* Even after compacting every cluster (logo, switcher, week nav, theme
+       toggle, account), four distinct controls plus the account avatar can
+       still be tight at 375px without either illegible squishing or
+       wrapping to a second row. Horizontal scroll is the honest fallback
+       — nothing becomes unreachable, it just isn't all visible without a
+       swipe on the very narrowest phones. The nav bar below has the same
+       fallback built in via .gds-m3-navbar__row's own overflow-x. */
     .gds-app-header__row {
         overflow-x: auto;
         scrollbar-width: none;
@@ -1527,13 +1514,6 @@ a.nav-tile:hover {
     align-items: stretch;
 }
 
-.view-league-actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
 .step-indicator {
     position: relative;
     display: flex;
@@ -1679,6 +1659,13 @@ a.nav-tile:hover {
     display: flex;
     align-items: center;
 }
+.team-identity__preview-icon {
+    display: inline-flex;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+}
 
 .team-badge {
     display: inline-flex;
@@ -1693,6 +1680,15 @@ a.nav-tile:hover {
 }
 .team-badge__name {
     font-weight: 600;
+}
+
+.league-badge {
+    width: 100%;
+    height: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: inherit;
 }
 
 /* ---------- Add Gymnasts / roster building ---------- */
@@ -1737,20 +1733,17 @@ a.nav-tile:hover {
     flex-direction: column;
     gap: 10px;
 }
-.league-summary__head {
-    display: flex;
+.league-summary--bare {
+    flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 16px;
+    flex-wrap: wrap;
 }
-.league-summary__head h2 {
-    margin: 0;
-}
-.league-summary__titles {
+.league-summary__icon-actions {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
+    align-items: center;
+    gap: 8px;
 }
 .gear-button {
     display: inline-flex;
@@ -2298,6 +2291,7 @@ a.nav-tile:hover {
 /* ---------- Lineups page ---------- */
 
 .lineup-controls {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2316,11 +2310,21 @@ a.nav-tile:hover {
     display: inline-flex;
 }
 .lineup-saved-indicator {
-    display: inline-block;
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     font-size: 12px;
     font-weight: 600;
     color: var(--success);
-    margin-bottom: 8px;
+    pointer-events: none;
+}
+.lineup-saved-indicator__anim {
+    width: 24px;
+    height: 24px;
 }
 
 .lineup-matrix-wrap {
@@ -2365,6 +2369,13 @@ a.nav-tile:hover {
 }
 .lineup-matrix .lineup-matrix__university-col {
     text-align: left;
+}
+/* Row-wide hover: plain cells are transparent so the row's own background
+   shows through; the sticky name column paints its own opaque background
+   (needed so it stays legible over cells scrolling underneath it) and so
+   needs the hover color repeated explicitly on that cell too. */
+.lineup-matrix tbody tr:hover {
+    background: var(--bg-2);
 }
 .lineup-matrix tbody tr:hover td.th-sticky {
     background: var(--bg-2);

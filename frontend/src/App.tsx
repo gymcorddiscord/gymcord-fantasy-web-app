@@ -1,6 +1,7 @@
 import { HashRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { LoadingIndicator } from 'gymcord-design-system';
 import { AuthProvider, useAuth } from './lib/AuthContext';
+import { ModalsProvider } from './lib/ModalsContext';
 import { AppHeader } from './components/AppHeader';
 import { FeedbackButton } from './components/FeedbackButton';
 import { Footer } from './components/Footer';
@@ -148,6 +149,13 @@ function Shell() {
     return (
         <div className="app-shell">
             <AppHeader />
+            {/* Create League and Build Your Roster are modals, not routes —
+                mounted here so opening either one never navigates away from
+                (and loses) whatever page is showing underneath. Each renders
+                nothing until its own open state (from ModalsContext) says
+                otherwise. */}
+            <CreateLeague />
+            <AddGymnasts />
             {loading ? (
                 <PageLoader />
             ) : (
@@ -193,14 +201,6 @@ function Shell() {
                         }
                     />
                     <Route
-                        path="/leagues/new"
-                        element={
-                            <RequireAuth>
-                                <CreateLeague />
-                            </RequireAuth>
-                        }
-                    />
-                    <Route
                         path="/admin/scores-import"
                         element={
                             <RequireAdmin>
@@ -215,14 +215,6 @@ function Shell() {
                         element={
                             <RequireAuth>
                                 <ViewLeague />
-                            </RequireAuth>
-                        }
-                    />
-                    <Route
-                        path="/leagues/:membershipId/roster"
-                        element={
-                            <RequireAuth>
-                                <AddGymnasts />
                             </RequireAuth>
                         }
                     />
@@ -256,7 +248,9 @@ export default function App() {
     return (
         <HashRouter>
             <AuthProvider>
-                <Shell />
+                <ModalsProvider>
+                    <Shell />
+                </ModalsProvider>
             </AuthProvider>
         </HashRouter>
     );

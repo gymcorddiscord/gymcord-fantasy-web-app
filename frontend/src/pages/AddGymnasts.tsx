@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
     Button,
     Card,
@@ -19,6 +19,7 @@ import { api, Gymnast, LeagueMembership } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { matchGymnastName, NameMatchResult } from '../lib/nameMatch';
 import { TeamBadge } from '../components/TeamBadge';
+import { useModals } from '../lib/ModalsContext';
 
 type Method = 'search' | 'paste';
 
@@ -53,8 +54,8 @@ const ADD_METHOD_OPTIONS: SegmentedToggleOption<Method>[] = [
 ];
 
 export function AddGymnasts() {
-    const { membershipId } = useParams<{ membershipId: string }>();
-    const navigate = useNavigate();
+    const { rosterMembershipId: membershipIdNum, closeRoster } = useModals();
+    const membershipId = membershipIdNum === null ? undefined : String(membershipIdNum);
     const { user, loading: authLoading } = useAuth();
 
     const [membership, setMembership] = useState<LeagueMembership | null>(null);
@@ -63,7 +64,6 @@ export function AddGymnasts() {
 
     const [allGymnasts, setAllGymnasts] = useState<Gymnast[]>([]);
     const [roster, setRoster] = useState<Map<number, RosterEntry>>(new Map());
-    const [rosterViewOpen, setRosterViewOpen] = useState(false);
 
     // Method A: Search & Add
     const [searchQuery, setSearchQuery] = useState('');
@@ -85,7 +85,7 @@ export function AddGymnasts() {
             const [m, catalog] = await Promise.all([api.getMembershipById(Number(membershipId)), api.gymnasts()]);
             if (cancelled) return;
             if (!m || m.userId !== user?.id) {
-                navigate('/home');
+                closeRoster();
                 return;
             }
             setMembership(m);
@@ -127,13 +127,6 @@ export function AddGymnasts() {
     }, [roster, membership]);
     const remainingSlots = Math.max(0, rosterSize - rosterCount);
     const full = remainingSlots === 0;
-    const myRosterGymnasts = useMemo(() => {
-        if (!membership) return [];
-        const ids = new Set<number>();
-        for (const [gymnastId, entry] of roster) if (entry.leagueMemberId === membership.id) ids.add(gymnastId);
-        return allGymnasts.filter((g) => ids.has(g.id));
-    }, [roster, allGymnasts, membership]);
-
     async function handleAdd(gymnast: Gymnast) {
         if (!membership || full || roster.has(gymnast.id)) return;
         setRoster((prev) => new Map(prev).set(gymnast.id, { leagueMemberId: membership.id, teamName: membership.teamName }));
@@ -234,16 +227,20 @@ export function AddGymnasts() {
         }
     }
 
+    if (membershipIdNum === null) return null;
+
     if (loading || !membership) {
         return (
-            <div className="full-page-loader">
-                <LoadingIndicator />
-            </div>
+            <Dialog open size="lg" ariaLabel="Build Your Roster" onClose={closeRoster}>
+                <div className="full-page-loader">
+                    <LoadingIndicator />
+                </div>
+            </Dialog>
         );
     }
 
     return (
-        <main className="page">
+        <Dialog open size="lg" ariaLabel="Build Your Roster" onClose={closeRoster}>
             <div className="roster-page">
             <div className="roster-header">
                 <div>
@@ -251,7 +248,7 @@ export function AddGymnasts() {
                     <div className="roster-header__team">
                         <TeamBadge color1={membership.teamColor1} color2={membership.teamColor2} teamName={membership.teamName} size="sm" />
                         <Text tone="secondary">in {membership.league.name}</Text>
-                        <Link to={`/leagues/${membership.id}`} className="team-settings-link">
+                        <Link to={`/leagues/${membership.id}`} className="team-settings-link" onClick={closeRoster}>
                             View League
                         </Link>
                     </div>
@@ -430,52 +427,11 @@ export function AddGymnasts() {
             )}
 
             <div className="roster-done-row">
-                <Button variant="secondary" onClick={() => setRosterViewOpen(true)}>
-                    View Roster
-                </Button>
-                <Button variant="secondary" onClick={() => navigate('/home')}>
+                <Button variant="secondary" onClick={closeRoster}>
                     Done
                 </Button>
             </div>
             </div>
-
-            <Dialog
-                open={rosterViewOpen}
-                onClose={() => setRosterViewOpen(false)}
-                title={`${membership.teamName}'s Roster`}
-                actions={<Button onClick={() => setRosterViewOpen(false)}>Close</Button>}
-            >
-                {myRosterGymnasts.length === 0 ? (
-                    <Text tone="tertiary">No gymnasts added yet.</Text>
-                ) : (
-                    <div className="gymnast-result-list">
-                        {myRosterGymnasts.map((g) => (
-                            <div className="gymnast-result-row" key={g.id}>
-                                <span className="school-avatar">{initials(g)}</span>
-                                <div className="gymnast-result-row__info">
-                                    <Text>
-                                        {g.firstName} {g.lastName}
-                                    </Text>
-                                    <Text size="caption" tone="secondary">
-                                        {g.team.shortName} {g.classYear ? `· ${g.classYear}` : ''}
-                                    </Text>
-                                    <div className="gymnast-result-row__tags">
-                                        {eventsToDisciplines(g).map((d) => (
-                                            <DisciplineTag key={d} discipline={d} />
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="gymnast-result-row__stat">
-                                    <Text size="caption" tone="tertiary">
-                                        Avg
-                                    </Text>
-                                    <Text>{g.seasonAverage !== null ? g.seasonAverage.toFixed(3) : 'N/A'}</Text>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </Dialog>
-        </main>
+        </Dialog>
     );
 }

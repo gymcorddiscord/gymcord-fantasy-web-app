@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import {
     BooksIcon,
     Button,
     ButterflyIcon,
-    Card,
     CheckIcon,
     ClipboardTextIcon,
     CoinsIcon,
@@ -13,6 +12,7 @@ import {
     CopyIcon,
     CrownIcon,
     DateTimePicker,
+    Dialog,
     DiceThreeIcon,
     Dropdown,
     EvergreenTreeIcon,
@@ -46,6 +46,7 @@ import {
 } from 'gymcord-design-system';
 import { api, DraftOrder, DraftStyle, LeagueIcon, TradeMode, WaiverPriority } from '../lib/api';
 import { StepIndicator } from '../components/StepIndicator';
+import { useModals } from '../lib/ModalsContext';
 
 const LEAGUE_ICON_OPTIONS: { value: LeagueIcon; label: string; icon: JSX.Element }[] = [
     { value: 'books', label: 'Books', icon: <BooksIcon size={20} /> },
@@ -171,7 +172,7 @@ function ChoiceCard({ selected, icon, title, desc, onClick }: ChoiceCardProps) {
 }
 
 export function CreateLeague() {
-    const navigate = useNavigate();
+    const { createLeagueOpen, closeCreateLeague, openRoster } = useModals();
 
     const [step, setStep] = useState(0);
     const [submitting, setSubmitting] = useState(false);
@@ -305,16 +306,57 @@ export function CreateLeague() {
         setTimeout(() => setCodeCopied(false), 2000);
     }
 
+    // This is a persistently-mounted modal now, not a page that unmounts on
+    // navigation — reset back to a blank step 0 on close (however it closes:
+    // the X, backdrop, Escape, Cancel, or after finishing) so the next open
+    // always starts fresh instead of showing whatever was left over.
+    function handleClose() {
+        closeCreateLeague();
+        setStep(0);
+        setSubmitting(false);
+        setFormError(null);
+        setCreated(false);
+        setCreatedLeague(null);
+        setCreatedMembership(null);
+        setLinkCopied(false);
+        setCodeCopied(false);
+        setLeagueName('');
+        setThemeText('');
+        setHostPlaying('Yes');
+        setTeamName('');
+        setLeagueIcon('star');
+        setIconPickerOpen(false);
+        setRosterSize(20);
+        setUpCount(10);
+        setCountScore(5);
+        setActivePresetLabel('Standard');
+        setDraftStyle('previously_drafted');
+        setDraftOrder('snake');
+        setAutodraftStart(defaultAutodraftStart());
+        setTradeMode('waiver');
+        setManualInjuryTrades('No');
+        setSeasonEndingOnly('No');
+        setWaiverProcessDay('wed_2359');
+        setWaiverPriority('reverse_snake');
+    }
+
+    function handleBuildRoster() {
+        if (!createdMembership) return;
+        closeCreateLeague();
+        openRoster(createdMembership.id);
+    }
+
+    if (!createLeagueOpen) return null;
+
     if (created && createdLeague) {
         return (
-            <main className="page-narrow">
-                <Card elevation="raised">
-                    <div className="wizard-panel create-success">
-                        <span className="create-success__check">
-                            <CheckIcon size={28} />
-                        </span>
-                        <Heading level={2}>League Created!</Heading>
-                        <Text tone="secondary">Share the invite link with your players to get started.</Text>
+            <Dialog open size="lg" ariaLabel="League created" onClose={handleClose}>
+                <div className="wizard-panel create-success">
+                    <span className="create-success__check">
+                        <CheckIcon size={28} />
+                    </span>
+                    <Heading level={2}>League Created!</Heading>
+                    <Text tone="secondary">Share the invite link with your players to get started.</Text>
 
                         <div className="invite-code-box">
                             <span className="invite-code-box__value invite-code-box__value--link">
@@ -361,31 +403,29 @@ export function CreateLeague() {
 
                         <div className="wizard-footer wizard-footer--stacked">
                             {createdMembership && (
-                                <Button onClick={() => navigate(`/leagues/${createdMembership.id}/roster`)} style={{ width: '100%' }}>
+                                <Button onClick={handleBuildRoster} style={{ width: '100%' }}>
                                     Build Your Roster
                                 </Button>
                             )}
-                            <Button variant="secondary" onClick={() => navigate('/home')} style={{ width: '100%' }}>
-                                Go to Dashboard
+                            <Button variant="secondary" onClick={handleClose} style={{ width: '100%' }}>
+                                Done
                             </Button>
                         </div>
-                    </div>
-                </Card>
-            </main>
+                </div>
+            </Dialog>
         );
     }
 
     return (
-        <main className="page-narrow page-narrow--wide">
+        <Dialog open size="lg" ariaLabel="Create a League" onClose={handleClose}>
             <Heading level={1}>Create a League</Heading>
             <Text tone="secondary">Hosting a league? Set up your league in a few steps to generate an invite link.</Text>
             <div style={{ marginTop: 24 }}>
                 <StepIndicator steps={STEP_LABELS} currentIndex={step} />
             </div>
 
-            <Card elevation="raised">
-                <div className="wizard-panel">
-                    {formError && (
+            <div className="wizard-panel">
+                {formError && (
                         <div className="form-error" role="alert">
                             {formError}
                         </div>
@@ -706,7 +746,7 @@ export function CreateLeague() {
 
                     <div className="wizard-footer">
                         {step === 0 ? (
-                            <Button variant="tertiary" onClick={() => navigate('/home')} disabled={submitting}>
+                            <Button variant="tertiary" onClick={handleClose} disabled={submitting}>
                                 Cancel
                             </Button>
                         ) : (
@@ -724,12 +764,13 @@ export function CreateLeague() {
                             </Button>
                         )}
                     </div>
-                </div>
-            </Card>
+            </div>
 
             <p style={{ textAlign: 'center', marginTop: 16 }}>
-                <Link to="/join">Joining someone else's league instead?</Link>
+                <Link to="/join" onClick={handleClose}>
+                    Joining someone else's league instead?
+                </Link>
             </p>
-        </main>
+        </Dialog>
     );
 }

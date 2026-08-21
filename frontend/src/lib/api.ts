@@ -278,6 +278,21 @@ export const api = {
         // `ncaa_teams.slug`/`ncaa_teams.division` below works (PostgREST
         // only supports filtering an embedded resource when it's an
         // inner join).
+        // PostgREST's `or=()` logic tree can't reference an embedded
+        // table's columns alongside the base table's, so a school-name
+        // match resolves matching ncaa_teams ids first, then joins them
+        // into the same or-tree as a base-table `ncaa_team_id.in.(...)`.
+        let searchTeamIds: number[] = [];
+        if (params.search) {
+            const term = params.search.replace(/[%,]/g, '');
+            const { data: teams, error: teamsError } = await supabase
+                .from('ncaa_teams')
+                .select('id')
+                .or(`name.ilike.%${term}%,short_name.ilike.%${term}%`);
+            if (teamsError) throw teamsError;
+            searchTeamIds = (teams || []).map((t) => t.id);
+        }
+
         const buildQuery = () => {
             let query = supabase
                 .from('gymnasts')
@@ -287,7 +302,8 @@ export const api = {
 
             if (params.search) {
                 const term = params.search.replace(/[%,]/g, '');
-                query = query.or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%`);
+                const teamClause = searchTeamIds.length > 0 ? `,ncaa_team_id.in.(${searchTeamIds.join(',')})` : '';
+                query = query.or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%${teamClause}`);
             }
             if (params.teams && params.teams.length > 0) {
                 query = query.in('ncaa_teams.slug', params.teams);

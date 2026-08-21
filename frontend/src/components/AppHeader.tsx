@@ -13,13 +13,15 @@ import {
     PlusIcon,
     type AppHeaderTab,
     type LeagueOption,
-    type SegmentedToggleOption
+    type SegmentedToggleOption,
+    type WeekOption
 } from 'gymcord-design-system';
 import { useAuth } from '../lib/AuthContext';
 import { applyTheme, getInitialTheme, Theme } from '../lib/theme';
 import { api, LeagueMembership } from '../lib/api';
 import { CURRENT_WEEK, SEASON_END_WEEK } from '../lib/lineups';
-import { TeamBadge } from './TeamBadge';
+import { useModals } from '../lib/ModalsContext';
+import { LeagueBadge } from './LeagueBadge';
 
 type NavTab = 'draft' | 'gymnasts';
 
@@ -28,6 +30,14 @@ const NAV_TABS: SegmentedToggleOption<NavTab>[] = [
     { value: 'gymnasts', label: 'Gymnasts', icon: <PeopleIcon size={16} /> }
 ];
 
+// Every week in the season, for the header's week-switcher dropdown —
+// shared by the Lineups and View League headers below.
+const WEEK_OPTIONS: WeekOption[] = Array.from({ length: SEASON_END_WEEK }, (_, i) => {
+    const value = i + 1;
+    const statusLabel = value === CURRENT_WEEK ? 'CURRENT' : value < CURRENT_WEEK ? 'LOCKED' : 'UPCOMING';
+    return { value, label: `Week ${value}`, statusLabel };
+});
+
 const TAB_PATHS: Record<NavTab, string> = {
     draft: '/home',
     gymnasts: '/gymnasts'
@@ -35,6 +45,7 @@ const TAB_PATHS: Record<NavTab, string> = {
 
 export function AppHeader() {
     const { user, logout } = useAuth();
+    const { openCreateLeague } = useModals();
     const navigate = useNavigate();
     const location = useLocation();
     const [theme, setTheme] = useState<Theme>(getInitialTheme());
@@ -70,7 +81,7 @@ export function AppHeader() {
                 id: String(m.id),
                 teamName: m.teamName,
                 leagueName: m.league.name,
-                icon: <TeamBadge color1={m.teamColor1} color2={m.teamColor2} size="sm" />
+                icon: <LeagueBadge icon={m.league.leagueIcon} color1={m.teamColor1} color2={m.teamColor2} size="sm" />
             })),
             { id: '__join__', teamName: 'Join a League', leagueName: 'Enter an invite code', icon: <PlusIcon size={16} /> },
             { id: '__create__', teamName: 'Create a League', leagueName: 'Start a new league', icon: <PlusIcon size={16} /> }
@@ -80,7 +91,7 @@ export function AppHeader() {
 
     function handleLeagueChange(id: string) {
         if (id === '__join__') navigate('/join');
-        else if (id === '__create__') navigate('/leagues/new');
+        else if (id === '__create__') openCreateLeague();
         else navigate(`/leagues/${id}`);
     }
 
@@ -154,13 +165,11 @@ export function AppHeader() {
                     activeTab="lineups"
                     onTabChange={(tab) => {
                         if (tab === 'lineups') navigate(`/leagues/${lineupsMembershipId}/lineups/${viewedWeek}`);
+                        else if (tab === 'draft') navigate(`/leagues/${lineupsMembershipId}`);
                     }}
-                    weekLabel={`Week ${viewedWeek}`}
-                    weekStatusLabel={viewedWeek === CURRENT_WEEK ? 'CURRENT' : viewedWeek < CURRENT_WEEK ? 'LOCKED' : 'UPCOMING'}
-                    onPrevWeek={() => navigate(`/leagues/${lineupsMembershipId}/lineups/${viewedWeek - 1}`)}
-                    onNextWeek={() => navigate(`/leagues/${lineupsMembershipId}/lineups/${viewedWeek + 1}`)}
-                    prevWeekDisabled={viewedWeek <= 1}
-                    nextWeekDisabled={viewedWeek >= SEASON_END_WEEK}
+                    weeks={WEEK_OPTIONS}
+                    activeWeek={viewedWeek}
+                    onWeekChange={(week) => navigate(`/leagues/${lineupsMembershipId}/lineups/${week}`)}
                     leagues={leagueOptions}
                     activeLeagueId={lineupsMembershipId}
                     onLeagueChange={handleLeagueChange}
@@ -172,20 +181,29 @@ export function AppHeader() {
         );
     }
 
-    // View League shows the switcher pointed at whichever league is on
-    // screen, so the player can jump straight to another one without
-    // detouring through the dashboard.
+    // View League (the Draft tab's destination) shows the switcher pointed
+    // at whichever league is on screen, so the player can jump straight to
+    // another one without detouring through the dashboard. It uses the same
+    // 5-tab season nav as Lineups (not the 2-tab preseason Draft/Gymnasts
+    // set) since Draft is now one of those five tabs rather than a
+    // separate phase of its own.
     const viewLeagueMatch = location.pathname.match(/^\/leagues\/(\d+)$/);
     if (viewLeagueMatch) {
+        const viewLeagueMembershipId = viewLeagueMatch[1];
         return (
             <div className="app-header--authed">
                 <DSAppHeader
                     logoHref="#/home"
-                    phase="preseason"
+                    phase="season"
                     activeTab="draft"
-                    onTabChange={onPreseasonTabChange}
+                    onTabChange={(tab) => {
+                        if (tab === 'lineups') navigate(`/leagues/${viewLeagueMembershipId}/lineups`);
+                    }}
+                    weeks={WEEK_OPTIONS}
+                    activeWeek={CURRENT_WEEK}
+                    onWeekChange={(week) => navigate(`/leagues/${viewLeagueMembershipId}/lineups/${week}`)}
                     leagues={leagueOptions}
-                    activeLeagueId={viewLeagueMatch[1]}
+                    activeLeagueId={viewLeagueMembershipId}
                     onLeagueChange={handleLeagueChange}
                     theme={theme}
                     onThemeToggle={setTheme}
@@ -195,23 +213,16 @@ export function AppHeader() {
         );
     }
 
-    // Join/Create League wizards + Add Gymnasts (roster building) are all
-    // part of the same pre-draft flow — "Draft" stays the active nav tab
-    // throughout, even though none of them route through the (not-yet-built)
-    // /draft page itself.
-    const isLeagueFlowRoute = /^\/leagues\/(new|\d+\/roster)/.test(location.pathname);
-    if (location.pathname.startsWith('/join') || isLeagueFlowRoute) {
+    // Join League is a one-off flow with no section/week of its own to
+    // navigate — no tabs, no week switcher, just enough header to keep
+    // branding/theme/account reachable while the player's attention is on
+    // the wizard. (Create League and Build Your Roster used to be routes
+    // handled the same way here; they're modals now — see ModalsContext —
+    // so they layer on top of whatever page's header is already showing.)
+    if (location.pathname.startsWith('/join')) {
         return (
             <div className="app-header--authed">
-                <DSAppHeader
-                    logoHref="#/home"
-                    phase="preseason"
-                    activeTab="draft"
-                    onTabChange={onPreseasonTabChange}
-                    theme={theme}
-                    onThemeToggle={setTheme}
-                    onLogOut={onLogout}
-                />
+                <DSAppHeader logoHref="#/home" hideNav theme={theme} onThemeToggle={setTheme} onLogOut={onLogout} />
             </div>
         );
     }
