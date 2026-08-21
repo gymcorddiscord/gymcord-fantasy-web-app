@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { LoadingIndicator } from 'gymcord-design-system';
 import { api, Division, Gymnast, NcaaTeam } from '../lib/api';
+import { Category, MetricSet } from '../lib/scoreMetrics';
 
 // Plain geometric glyph, not an emoji — every other icon in this table
 // (⌄ ▲ ▼ × → ↗ ↘) is a monochrome character that inherits currentColor,
@@ -72,7 +73,7 @@ function NameSearchPopover({ value, onChange }: { value: string; onChange: (v: s
                     <input
                         type="text"
                         className="col-filter__search"
-                        placeholder="Search by name…"
+                        placeholder="Search by name"
                         value={value}
                         onChange={(e) => onChange(e.target.value)}
                         autoFocus
@@ -164,7 +165,7 @@ function ColumnFilterPopover({
                         <input
                             type="text"
                             className="col-filter__search"
-                            placeholder="Search…"
+                            placeholder="Search"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             autoFocus
@@ -224,9 +225,9 @@ const COMPOSITE_COLUMNS: { key: CompositeKey; n: number; label: string; title: s
 // Requires at least `n` non-null apparatus averages — a specialist with
 // only 2 events can't produce a real "3 highest" sum, so that cell is
 // null (—) rather than a misleadingly partial total.
-function topNAverageSum(g: Gymnast, n: number): number | null {
+function topNAverageSum(metrics: Record<Category, MetricSet> | undefined, n: number): number | null {
     const vals = EVENT_ROW
-        .map(({ key }) => g.eventAverages[key])
+        .map(({ key }) => metrics?.[key]?.average ?? null)
         .filter((v): v is number => v !== null)
         .sort((a, b) => b - a);
     if (vals.length < n) return null;
@@ -304,7 +305,15 @@ function Sparkline({ scores }: { scores: number[] }) {
     );
 }
 
-function GymnastDetailModal({ gymnast, onClose }: { gymnast: Gymnast; onClose: () => void }) {
+function GymnastDetailModal({
+    gymnast,
+    metrics,
+    onClose
+}: {
+    gymnast: Gymnast;
+    metrics: Record<Category, MetricSet> | undefined;
+    onClose: () => void;
+}) {
     const [weeklyScores, setWeeklyScores] = useState<Record<'vault' | 'bars' | 'beam' | 'floor', { week: number; score: number }[]> | null>(null);
 
     useEffect(() => {
@@ -325,11 +334,11 @@ function GymnastDetailModal({ gymnast, onClose }: { gymnast: Gymnast; onClose: (
     const bestEvent = useMemo(() => {
         let best: { key: string; label: string; value: number } | null = null;
         for (const { key, label } of EVENT_DETAIL_ROW) {
-            const value = gymnast.eventAverages[key];
+            const value = metrics?.[key]?.average ?? null;
             if (value !== null && (!best || value > best.value)) best = { key, label, value };
         }
         return best;
-    }, [gymnast]);
+    }, [metrics]);
 
     return (
         <div className="gymnast-modal-backdrop" onClick={onClose}>
@@ -367,7 +376,7 @@ function GymnastDetailModal({ gymnast, onClose }: { gymnast: Gymnast; onClose: (
 
                 <div className="gymnast-modal__events">
                     {EVENT_DETAIL_ROW.map(({ key, label }) => {
-                        const value = gymnast.eventAverages[key];
+                        const value = metrics?.[key]?.average ?? null;
                         const competes = gymnast.events[key];
                         const weeks = weeklyScores?.[key];
                         const scores = weeks && weeks.length > 0 ? weeks.map((w) => w.score) : null;
@@ -424,7 +433,7 @@ const COMPOSITE_KEYS = new Set<string>(COMPOSITE_COLUMNS.map(c => c.key));
 
 function getSortValue(
     g: Gymnast,
-    lastScores: Record<number, Record<ApparatusKey, number | null>>,
+    metrics: Record<number, Record<Category, MetricSet>>,
     key: SortKey
 ): string | number | null {
     if (key === 'name') return `${g.lastName} ${g.firstName}`;
@@ -432,11 +441,11 @@ function getSortValue(
     if (key === 'division') return g.team.division;
     if (COMPOSITE_KEYS.has(key)) {
         const c = COMPOSITE_COLUMNS.find(c => c.key === key)!;
-        return topNAverageSum(g, c.n);
+        return topNAverageSum(metrics[g.id], c.n);
     }
     const [event, metric] = key.split('-') as [ApparatusKey, MetricKey];
-    if (metric === 'avg') return g.eventAverages[event];
-    if (metric === 'last') return lastScores[g.id]?.[event] ?? null;
+    if (metric === 'avg') return metrics[g.id]?.[event]?.average ?? null;
+    if (metric === 'last') return metrics[g.id]?.[event]?.mostRecent ?? null;
     return g.eventNqs[event];
 }
 
@@ -461,7 +470,7 @@ export function Gymnasts() {
     const [loading, setLoading]   = useState(true);
     const [error, setError]       = useState<string | null>(null);
     const [selected, setSelected] = useState<Gymnast | null>(null);
-    const [lastScores, setLastScores] = useState<Record<number, Record<'vault' | 'bars' | 'beam' | 'floor', number | null>>>({});
+    const [metrics, setMetrics] = useState<Record<number, Record<Category, MetricSet>>>({});
     const [sort, setSort]         = useState<SortState | null>({ key: 'aa4', dir: 'desc' });
     const [hiddenCols, setHiddenCols] = useState<Set<string>>(() => loadHiddenColumns());
     const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
@@ -492,11 +501,12 @@ export function Gymnasts() {
                 });
                 if (!cancelled) setItems(gymnasts);
 
-                // "Last" column needs each gymnast's most recent 2026 meet
-                // score — fetched in one batched query rather than per row.
-                api.lastScores(gymnasts.map(g => g.id))
-                    .then(scores => { if (!cancelled) setLastScores(scores); })
-                    .catch(() => { if (!cancelled) setLastScores({}); });
+                // Avg/Last/composite columns need every metric computed live
+                // from `scores` — fetched in one batched query rather than
+                // per row.
+                api.scoreMetrics(gymnasts.map(g => g.id))
+                    .then(computed => { if (!cancelled) setMetrics(computed); })
+                    .catch(() => { if (!cancelled) setMetrics({}); });
             } catch (e) {
                 const err = e as { error?: string };
                 if (!cancelled) setError(err.error || 'Could not load gymnasts.');
@@ -517,9 +527,9 @@ export function Gymnasts() {
     const sortedItems = useMemo(() => {
         if (!sort) return items;
         return [...items].sort((a, b) =>
-            compareValues(getSortValue(a, lastScores, sort.key), getSortValue(b, lastScores, sort.key), sort.dir)
+            compareValues(getSortValue(a, metrics, sort.key), getSortValue(b, metrics, sort.key), sort.dir)
         );
-    }, [items, lastScores, sort]);
+    }, [items, metrics, sort]);
 
     function handleSort(key: SortKey) {
         setSort(prev => {
@@ -742,7 +752,7 @@ export function Gymnasts() {
                     </thead>
                     <tbody>
                         {sortedItems.map(g => {
-                            const gymnastLastScores = lastScores[g.id];
+                            const gymnastMetrics = metrics[g.id];
                             return (
                                 <tr
                                     key={g.id}
@@ -765,9 +775,9 @@ export function Gymnasts() {
                                             let value: number | null;
                                             let extraClass = '';
                                             if (metric === 'avg') {
-                                                value = g.eventAverages[eventKey];
+                                                value = gymnastMetrics?.[eventKey]?.average ?? null;
                                             } else if (metric === 'last') {
-                                                value = gymnastLastScores?.[eventKey] ?? null;
+                                                value = gymnastMetrics?.[eventKey]?.mostRecent ?? null;
                                                 extraClass = ' td-last';
                                             } else {
                                                 value = g.eventNqs[eventKey];
@@ -780,7 +790,7 @@ export function Gymnasts() {
                                         })
                                     )}
                                     {visibleComposite.map(c => {
-                                        const value = topNAverageSum(g, c.n);
+                                        const value = topNAverageSum(gymnastMetrics, c.n);
                                         return (
                                             <td key={c.key} className={`stat-figure${value === null ? ' td-muted' : ''}`}>
                                                 {value !== null ? value.toFixed(3) : '—'}
@@ -795,7 +805,7 @@ export function Gymnasts() {
             </div>
 
             {selected && (
-                <GymnastDetailModal gymnast={selected} onClose={() => setSelected(null)} />
+                <GymnastDetailModal gymnast={selected} metrics={metrics[selected.id]} onClose={() => setSelected(null)} />
             )}
         </main>
     );

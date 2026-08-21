@@ -4,7 +4,7 @@
  * public catalog data and feedback submission.
  */
 import { supabase } from './supabase';
-import { computeScoreMetrics, Category, MetricSet, ScoreRow } from './scoreMetrics';
+import { Category, MetricSet } from './scoreMetrics';
 
 export interface User {
     id: string;
@@ -341,87 +341,53 @@ export const api = {
         return byEvent;
     },
 
-    // Most recent (highest week_number) score per event for a batch of
-    // gymnasts in one query, rather than one weeklyScores() call per row —
-    // this is what the Gymnasts table's "Last" columns are built from.
-    lastScores: async (
-        gymnastIds: number[],
-        seasonYear = 2026
-    ): Promise<Record<number, Record<'vault' | 'bars' | 'beam' | 'floor', number | null>>> => {
-        if (gymnastIds.length === 0) return {};
-
-        const { data, error } = await supabase
-            .from('scores')
-            .select('gymnast_id, event, week_number, score')
-            .eq('season_year', seasonYear)
-            .in('gymnast_id', gymnastIds);
-        if (error) throw error;
-
-        const latestWeek: Record<number, Partial<Record<string, number>>> = {};
-        const latestScore: Record<number, Partial<Record<string, number>>> = {};
-        for (const row of data || []) {
-            const seenWeek = latestWeek[row.gymnast_id]?.[row.event];
-            if (seenWeek === undefined || row.week_number > seenWeek) {
-                (latestWeek[row.gymnast_id] ??= {})[row.event] = row.week_number;
-                (latestScore[row.gymnast_id] ??= {})[row.event] = row.score;
-            }
-        }
-
-        const result: Record<number, Record<'vault' | 'bars' | 'beam' | 'floor', number | null>> = {};
-        for (const id of gymnastIds) {
-            const scores = latestScore[id] || {};
-            result[id] = {
-                vault: scores.vault ?? null,
-                bars: scores.bars ?? null,
-                beam: scores.beam ?? null,
-                floor: scores.floor ?? null
-            };
-        }
-        return result;
-    },
-
     // Every metric (Average/Median/Most Recent/High/Avg-Home/Avg-Away/
     // Rolling-3) x category (VT/UB/BB/FX/AA) for a batch of gymnasts,
-    // computed live from the `scores` table rather than the flat *_avg
-    // snapshot columns. NQS is not included — see the note atop
-    // scoreMetrics.ts.
+    // read straight from the gymnast_event_season_metrics SQL view — see
+    // gymcord_fantasy_score_view_metrics memory for the view chain. NQS is
+    // not included even though the view computes it: NQS is still surfaced
+    // from the flat gymnasts.*_nqs snapshot columns until scores.location
+    // is populated enough to make the live NQS column meaningful.
     scoreMetrics: async (
         gymnastIds: number[],
         seasonYear = 2026
     ): Promise<Record<number, Record<Category, MetricSet>>> => {
         if (gymnastIds.length === 0) return {};
 
-        // Same 1000-row PostgREST cap as gymnasts() — a full season is
-        // several scores per gymnast, so this pages well past one request.
+        const num = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
+
+        // Same 1000-row PostgREST cap as gymnasts() — up to 5 event rows
+        // per gymnast, so a full active-roster fetch pages past one request.
         const PAGE_SIZE = 1000;
         let rows: any[] = [];
         for (let from = 0; ; from += PAGE_SIZE) {
             const { data, error } = await supabase
-                .from('scores')
-                .select('gymnast_id, event, week_number, score, meet_date, location')
+                .from('gymnast_event_season_metrics')
+                .select('gymnast_id, event, average_score, median_score, most_recent_score, high_score, avg_home_score, avg_away_score, rolling3_score')
                 .eq('season_year', seasonYear)
                 .in('gymnast_id', gymnastIds)
-                // Explicit order is required, not cosmetic: paging with
-                // .range() over an unordered query lets Postgres return
-                // rows in a different order per request, silently
-                // duplicating some scores and dropping others.
-                .order('id')
+                // Explicit order is required, not cosmetic — same reasoning
+                // as gymnasts()'s paging above.
+                .order('gymnast_id')
+                .order('event')
                 .range(from, from + PAGE_SIZE - 1);
             if (error) throw error;
             rows = rows.concat(data || []);
             if (!data || data.length < PAGE_SIZE) break;
         }
 
-        const byGymnast = new Map<number, ScoreRow[]>();
-        for (const row of rows) {
-            const list = byGymnast.get(row.gymnast_id) ?? [];
-            list.push({ event: row.event, weekNumber: row.week_number, score: Number(row.score), meetDate: row.meet_date, location: row.location });
-            byGymnast.set(row.gymnast_id, list);
-        }
-
         const result: Record<number, Record<Category, MetricSet>> = {};
-        for (const id of gymnastIds) {
-            result[id] = computeScoreMetrics(byGymnast.get(id) ?? []);
+        for (const row of rows) {
+            const set: MetricSet = {
+                average: num(row.average_score),
+                median: num(row.median_score),
+                mostRecent: num(row.most_recent_score),
+                high: num(row.high_score),
+                avgHome: num(row.avg_home_score),
+                avgAway: num(row.avg_away_score),
+                rolling3: num(row.rolling3_score)
+            };
+            (result[row.gymnast_id] ??= {} as Record<Category, MetricSet>)[row.event as Category] = set;
         }
         return result;
     },

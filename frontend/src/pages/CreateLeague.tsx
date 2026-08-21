@@ -676,7 +676,7 @@ export function CreateLeague() {
                             {isWaiver && (
                                 <div className="panel">
                                     <Dropdown
-                                        placeholder="Select…"
+                                        placeholder="Select"
                                         value={waiverProcessDay}
                                         options={WAIVER_DAY_OPTIONS}
                                         onChange={setWaiverProcessDay}

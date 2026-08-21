@@ -87,7 +87,7 @@ a {
     text-decoration: none;
 }
 a:hover { text-decoration: underline; }
-/* A <Link> reusing gds-button classes (Join a League, Build Roster, …) is
+/* A <Link> reusing gds-button classes (Join a League, Build Roster, etc.) is
    still an <a> underneath, so the rule above would otherwise underline it
    on hover — DS buttons never underline regardless of the underlying tag. */
 .gds-button:hover { text-decoration: none; }
@@ -294,7 +294,7 @@ label {
 }
 
 /* :not([class*="gds-"]) on every rule below excludes the design system's own
-   inputs (TextField, SearchBar, DateTimePicker, …) — their `gds-*` classes
+   inputs (TextField, SearchBar, DateTimePicker, etc.) — their `gds-*` classes
    have lower specificity than these legacy tag/attribute selectors, so
    without the exclusion a DS field gets styled twice: once by its own
    component CSS, once by these leftover pre-DS rules (visible as a double

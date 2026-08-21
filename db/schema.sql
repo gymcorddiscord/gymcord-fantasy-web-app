@@ -595,6 +595,204 @@ create policy "Admins can update gymnasts"
 
 alter table public.ncaa_teams add column if not exists logo_url text;
 
+-- ---------- Score metrics views ----------
+-- Computed score-metrics layer over `scores` — not flat columns, so future
+-- seasons compute automatically as rows are added instead of needing a new
+-- import/backfill step each week. Backs api.scoreMetrics() in the frontend
+-- (see gymcord_fantasy_score_view_metrics memory for the fuller history).
+
+-- One row per gymnast/season/week/event, deduped defensively (avg() collapses
+-- the rare duplicate data-entry row rather than double-counting a meet).
+create or replace view public.gymnast_event_week_scores
+with (security_invoker = true) as
+select
+    gymnast_id,
+    season_year,
+    week_number,
+    event,
+    avg(score) as score,
+    min(meet_date) as meet_date,
+    min(location) as location
+from public.scores
+group by gymnast_id, season_year, week_number, event;
+
+comment on view public.gymnast_event_week_scores is
+    'One row per gymnast/season/week/event, deduped from raw scores. Building block for gymnast_event_scores_all.';
+
+-- Derived all-around score per meet: sum of vault+bars+beam+floor for weeks
+-- where a gymnast has all four events recorded (i.e. she actually went
+-- all-around that meet). Grouped by week_number rather than meet_date since
+-- meet_date is null on nearly all rows in practice.
+create or replace view public.gymnast_aa_week_scores
+with (security_invoker = true) as
+select
+    gymnast_id,
+    season_year,
+    week_number,
+    sum(score) as score,
+    min(meet_date) as meet_date,
+    min(location) as location
+from public.gymnast_event_week_scores
+group by gymnast_id, season_year, week_number
+having count(*) = 4;
+
+comment on view public.gymnast_aa_week_scores is
+    'Derived all-around total per meet (sum of VT/UB/BB/FX), only for weeks a gymnast competed all four events.';
+
+-- Unified per-meet score feed across VT/UB/BB/FX/AA, so the metrics view
+-- below treats all-around like any other event instead of needing separate logic.
+create or replace view public.gymnast_event_scores_all
+with (security_invoker = true) as
+select gymnast_id, season_year, week_number, event, score, meet_date, location
+from public.gymnast_event_week_scores
+union all
+select gymnast_id, season_year, week_number, 'aa' as event, score, meet_date, location
+from public.gymnast_aa_week_scores;
+
+comment on view public.gymnast_event_scores_all is
+    'Per-meet scores for vault/bars/beam/floor plus derived aa, one feed for gymnast_event_season_metrics.';
+
+-- Average / Median / Most Recent / High / NQS / Average-Home / Average-Away /
+-- Rolling-3-Meet-Average per gymnast x event(vault/bars/beam/floor/aa) x
+-- season. NQS (individual per-event National Qualifying Score): 3 highest
+-- home + 3 highest away scores this season (6 total), drop the single
+-- highest of those six, average the remaining five. Requires >=3 home and
+-- >=3 away scores to be calculable; null otherwise.
+create or replace view public.gymnast_event_season_metrics
+with (security_invoker = true) as
+with base as (
+    select * from public.gymnast_event_scores_all
+),
+agg as (
+    select
+        gymnast_id,
+        event,
+        season_year,
+        avg(score) as average_score,
+        percentile_cont(0.5) within group (order by score) as median_score,
+        max(score) as high_score,
+        count(*) as meet_count,
+        count(*) filter (where location = 'home') as home_count,
+        count(*) filter (where location = 'away') as away_count,
+        avg(score) filter (where location = 'home') as avg_home_score,
+        avg(score) filter (where location = 'away') as avg_away_score
+    from base
+    group by gymnast_id, event, season_year
+),
+most_recent as (
+    select distinct on (gymnast_id, event, season_year)
+        gymnast_id, event, season_year,
+        score as most_recent_score,
+        week_number as most_recent_week
+    from base
+    order by gymnast_id, event, season_year, week_number desc, meet_date desc nulls last
+),
+nqs_pool as (
+    select
+        gymnast_id, event, season_year, score,
+        row_number() over (
+            partition by gymnast_id, event, season_year, location
+            order by score desc
+        ) as location_rank
+    from base
+    where location is not null
+),
+nqs_calc as (
+    select gymnast_id, event, season_year,
+        (sum(score) - max(score)) / 5 as nqs
+    from nqs_pool
+    where location_rank <= 3
+    group by gymnast_id, event, season_year
+),
+rolling_pool as (
+    select
+        gymnast_id, event, season_year, score,
+        row_number() over (
+            partition by gymnast_id, event, season_year
+            order by week_number desc, meet_date desc nulls last
+        ) as recency_rank
+    from base
+),
+rolling_calc as (
+    select gymnast_id, event, season_year, avg(score) as rolling3_score
+    from rolling_pool
+    where recency_rank <= 3
+    group by gymnast_id, event, season_year
+)
+select
+    a.gymnast_id,
+    a.event,
+    a.season_year,
+    round(a.average_score::numeric, 3) as average_score,
+    round(a.median_score::numeric, 3) as median_score,
+    mr.most_recent_score,
+    mr.most_recent_week,
+    a.high_score,
+    a.meet_count,
+    a.home_count,
+    a.away_count,
+    case when a.home_count >= 3 and a.away_count >= 3 then round(n.nqs::numeric, 3) else null end as nqs,
+    round(a.avg_home_score::numeric, 3) as avg_home_score,
+    round(a.avg_away_score::numeric, 3) as avg_away_score,
+    round(r.rolling3_score::numeric, 3) as rolling3_score
+from agg a
+left join most_recent mr using (gymnast_id, event, season_year)
+left join nqs_calc n using (gymnast_id, event, season_year)
+left join rolling_calc r using (gymnast_id, event, season_year);
+
+comment on view public.gymnast_event_season_metrics is
+    'Average/Median/Most Recent/High/NQS/AvgHome/AvgAway/Rolling3 per gymnast x event(vault/bars/beam/floor/aa) x season_year, computed live from scores. Backs api.scoreMetrics() in the frontend.';
+
+grant select on public.gymnast_event_week_scores to anon, authenticated;
+grant select on public.gymnast_aa_week_scores to anon, authenticated;
+grant select on public.gymnast_event_scores_all to anon, authenticated;
+grant select on public.gymnast_event_season_metrics to anon, authenticated;
+
+-- ---------- Roster size cap ----------
+-- roster_gymnasts had no enforcement of leagues.roster_size (default 20,
+-- commissioner-configurable 5-50) — any number of gymnasts could be added to
+-- one team regardless of the league's configured cap. security invoker (not
+-- definer) is enough since both leagues and roster_gymnasts already have
+-- public-read RLS policies, and trigger firing doesn't require the invoking
+-- role to hold execute on the trigger function.
+create or replace function public.enforce_roster_size()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+    v_roster_size integer;
+    v_current_count integer;
+begin
+    select roster_size into v_roster_size
+    from public.leagues
+    where id = new.league_id;
+
+    select count(*) into v_current_count
+    from public.roster_gymnasts
+    where league_member_id = new.league_member_id;
+
+    if v_current_count >= v_roster_size then
+        raise exception 'Roster is full (% of % spots filled)', v_current_count, v_roster_size
+            using errcode = 'check_violation';
+    end if;
+
+    return new;
+end;
+$$;
+
+comment on function public.enforce_roster_size is
+    'Blocks inserting a gymnast onto a roster_gymnasts row once the team already has league.roster_size gymnasts.';
+
+revoke execute on function public.enforce_roster_size() from public, anon, authenticated;
+
+drop trigger if exists roster_gymnasts_enforce_size on public.roster_gymnasts;
+create trigger roster_gymnasts_enforce_size
+    before insert on public.roster_gymnasts
+    for each row
+    execute function public.enforce_roster_size();
+
 -- =============================================================
 -- Future tables (Trades, Waivers, Draft, etc.) will be added in
 -- later migrations.

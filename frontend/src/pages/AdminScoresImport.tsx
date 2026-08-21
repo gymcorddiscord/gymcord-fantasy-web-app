@@ -36,7 +36,7 @@ function GymnastPicker({ gymnasts, onSelect }: { gymnasts: Gymnast[]; onSelect: 
         <div className="gymnast-picker">
             <input
                 type="text"
-                placeholder="Search gymnast by name or school…"
+                placeholder="Search gymnast by name or school"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
             />
@@ -271,12 +271,12 @@ function ManualScoreEntry({ gymnasts }: { gymnasts: Gymnast[] }) {
                             disabled={submitting}
                             onClick={() => submitScore(true)}
                         >
-                            {submitting ? 'Updating…' : `Update it to ${scoreText || '…'}`}
+                            {submitting ? 'Updating' : `Update it to ${scoreText || 'this score'}`}
                         </button>
                     </div>
                 ) : (
                     <button type="submit" className="btn btn-primary" style={{ width: 'auto' }} disabled={submitting}>
-                        {submitting ? 'Saving…' : 'Add Score'}
+                        {submitting ? 'Saving' : 'Add Score'}
                     </button>
                 )}
             </form>
@@ -367,7 +367,7 @@ function FlaggedRowCard({
                         disabled={!selected || busy}
                         onClick={handleApprove}
                     >
-                        {busy ? 'Approving…' : 'Approve & Insert'}
+                        {busy ? 'Approving' : 'Approve & Insert'}
                     </button>
                     <button type="button" className="btn btn-ghost" style={{ width: 'auto' }} disabled={busy} onClick={handleReject}>
                         Reject
@@ -544,7 +544,7 @@ export function AdminScoresImport() {
                     onChange={handleFile}
                     disabled={classifying || submitting || !gymnasts}
                 />
-                {classifying && <p style={{ color: 'var(--text-muted)' }}>Matching gymnasts…</p>}
+                {classifying && <p style={{ color: 'var(--text-muted)' }}>Matching gymnasts</p>}
                 {parseError && (
                     <div className="form-error" role="alert">
                         {parseError}
@@ -609,7 +609,7 @@ export function AdminScoresImport() {
                             disabled={submitting || (counts.ready === 0 && counts.flagged === 0)}
                             onClick={handleImport}
                         >
-                            {submitting ? 'Importing…' : `Import ${counts.ready + counts.flagged} row${counts.ready + counts.flagged === 1 ? '' : 's'}`}
+                            {submitting ? 'Importing' : `Import ${counts.ready + counts.flagged} row${counts.ready + counts.flagged === 1 ? '' : 's'}`}
                         </button>
                     </>
                 )}
@@ -618,7 +618,7 @@ export function AdminScoresImport() {
 
             <p className="section-title">Pending Review ({flaggedRows?.length ?? 0})</p>
             {flaggedRows === null ? (
-                <div className="full-page-loader">Loading…</div>
+                <div className="full-page-loader">Loading</div>
             ) : flaggedRows.length === 0 ? (
                 <p style={{ color: 'var(--text-muted)' }}>No rows waiting on review.</p>
             ) : (

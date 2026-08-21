@@ -462,7 +462,7 @@ export function Lineups() {
                             Cancel
                         </Button>
                         <Button className="btn-danger" onClick={handleClearAll} disabled={bulkBusy}>
-                            {bulkBusy ? 'Clearing…' : 'Clear All'}
+                            {bulkBusy ? 'Clearing' : 'Clear All'}
                         </Button>
                     </>
                 }
@@ -480,7 +480,7 @@ export function Lineups() {
                             Cancel
                         </Button>
                         <Button onClick={handleImportLastWeek} disabled={bulkBusy}>
-                            {bulkBusy ? 'Importing…' : 'Import Last Week'}
+                            {bulkBusy ? 'Importing' : 'Import Last Week'}
                         </Button>
                     </>
                 }
@@ -498,7 +498,7 @@ export function Lineups() {
                             Cancel
                         </Button>
                         <Button onClick={handlePopulateFutureWeeks} disabled={bulkBusy}>
-                            {bulkBusy ? 'Applying…' : 'Apply to All Future Weeks'}
+                            {bulkBusy ? 'Applying' : 'Apply to All Future Weeks'}
                         </Button>
                     </>
                 }
