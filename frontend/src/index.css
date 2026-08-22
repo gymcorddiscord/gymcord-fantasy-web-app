@@ -1896,10 +1896,6 @@ a.nav-tile:hover {
     gap: 4px;
     margin-top: 2px;
 }
-.gymnast-result-row__stat {
-    text-align: center;
-    min-width: 48px;
-}
 .school-avatar {
     display: inline-flex;
     align-items: center;
@@ -2309,11 +2305,18 @@ a.nav-tile:hover {
 .lineup-toggle {
     display: inline-flex;
 }
+.lineup-clear-all-btn {
+    color: var(--danger);
+}
+.lineup-clear-all-btn:hover {
+    color: var(--danger);
+    opacity: 0.85;
+}
 .lineup-saved-indicator {
     position: absolute;
-    top: 50%;
+    top: 100%;
     right: 0;
-    transform: translateY(-50%);
+    margin-top: 6px;
     display: inline-flex;
     align-items: center;
     gap: 4px;

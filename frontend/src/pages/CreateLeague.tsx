@@ -46,6 +46,7 @@ import {
 } from 'gymcord-design-system';
 import { api, DraftOrder, DraftStyle, LeagueIcon, TradeMode, WaiverPriority } from '../lib/api';
 import { StepIndicator } from '../components/StepIndicator';
+import { TeamIdentityStep } from '../components/TeamIdentityStep';
 import { useModals } from '../lib/ModalsContext';
 
 const LEAGUE_ICON_OPTIONS: { value: LeagueIcon; label: string; icon: JSX.Element }[] = [
@@ -188,6 +189,7 @@ export function CreateLeague() {
     const [themeText, setThemeText] = useState('');
     const [hostPlaying, setHostPlaying] = useState<'Yes' | 'No'>('Yes');
     const [teamName, setTeamName] = useState('');
+    const [teamColors, setTeamColors] = useState<string[]>([]);
     const [leagueIcon, setLeagueIcon] = useState<LeagueIcon>('star');
     const [iconPickerOpen, setIconPickerOpen] = useState(false);
     const iconPickerRef = useRef<HTMLDivElement>(null);
@@ -246,7 +248,9 @@ export function CreateLeague() {
         setActivePresetLabel(null);
     }
 
-    const step0Valid = leagueName.trim().length > 0 && (hostPlaying === 'No' || teamName.trim().length > 0);
+    const step0Valid =
+        leagueName.trim().length > 0 &&
+        (hostPlaying === 'No' || (teamName.trim().length > 0 && teamColors.length === 2));
     const isWaiver = tradeMode === 'waiver';
 
     function goBack() {
@@ -266,8 +270,8 @@ export function CreateLeague() {
                 themeText,
                 hostPlaying: hostPlaying === 'Yes',
                 teamName: teamName.trim(),
-                teamColor1: '',
-                teamColor2: '',
+                teamColor1: hostPlaying === 'Yes' ? (teamColors[0] ?? '') : '',
+                teamColor2: hostPlaying === 'Yes' ? (teamColors[1] ?? '') : '',
                 rosterSize,
                 upCount,
                 countScore,
@@ -490,11 +494,14 @@ export function CreateLeague() {
                                 />
                             </div>
                             {hostPlaying === 'Yes' && (
-                                <TextField
-                                    label="Your Team Name"
-                                    value={teamName}
-                                    onChange={setTeamName}
-                                    placeholder="e.g. 9.975 With A Step"
+                                <TeamIdentityStep
+                                    hideHeading
+                                    teamName={teamName}
+                                    onTeamNameChange={setTeamName}
+                                    colors={teamColors}
+                                    onColorsChange={setTeamColors}
+                                    leagueName={leagueName.trim() || 'your league'}
+                                    leagueIcon={leagueIcon}
                                     disabled={submitting}
                                 />
                             )}

@@ -293,12 +293,6 @@ export function AddGymnasts() {
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="gymnast-result-row__stat">
-                                        <Text size="caption" tone="tertiary">
-                                            Avg
-                                        </Text>
-                                        <Text>{g.seasonAverage !== null ? g.seasonAverage.toFixed(3) : 'N/A'}</Text>
-                                    </div>
                                     {mine ? (
                                         <Button variant="secondary" disabled>
                                             Added ✓

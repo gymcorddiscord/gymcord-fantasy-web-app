@@ -301,9 +301,24 @@ export const api = {
                 .order('last_name');
 
             if (params.search) {
-                const term = params.search.replace(/[%,]/g, '');
+                const term = params.search.replace(/[%,()]/g, '');
                 const teamClause = searchTeamIds.length > 0 ? `,ncaa_team_id.in.(${searchTeamIds.join(',')})` : '';
-                query = query.or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%${teamClause}`);
+                // A "First Last" query (the pattern the search box's own
+                // placeholder suggests) won't match first_name or last_name
+                // alone, since neither column contains the full string.
+                // Try every word-boundary split against first_name/last_name
+                // pairs too — first_name itself can be two words (e.g.
+                // "Sadie Jane" Berry), so only splitting on the first space
+                // would miss her.
+                const words = term.trim().split(/\s+/).filter(Boolean);
+                const splitClauses: string[] = [];
+                for (let i = 1; i < words.length; i++) {
+                    const first = words.slice(0, i).join(' ');
+                    const rest = words.slice(i).join(' ');
+                    splitClauses.push(`and(first_name.ilike.%${first}%,last_name.ilike.%${rest}%)`);
+                }
+                const fullNameClause = splitClauses.length > 0 ? `,${splitClauses.join(',')}` : '';
+                query = query.or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%${fullNameClause}${teamClause}`);
             }
             if (params.teams && params.teams.length > 0) {
                 query = query.in('ncaa_teams.slug', params.teams);

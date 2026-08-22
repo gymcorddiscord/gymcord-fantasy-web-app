@@ -369,7 +369,12 @@ export function Lineups() {
                         <Checkbox checked={hideInjured} onChange={setHideInjured} label="Hide Injured" />
                     </div>
                     {!isHistorical && (
-                        <Button variant="tertiary" disabled={!hasAnySelections || bulkBusy} onClick={() => setClearConfirmOpen(true)}>
+                        <Button
+                            variant="tertiary"
+                            className="lineup-clear-all-btn"
+                            disabled={!hasAnySelections || bulkBusy}
+                            onClick={() => setClearConfirmOpen(true)}
+                        >
                             Clear All
                         </Button>
                     )}
